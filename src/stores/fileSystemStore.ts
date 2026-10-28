@@ -24,7 +24,7 @@ import {
 } from '../core/FileSystem';
 import { contentForKind } from '../core/Documents';
 import { buildSeedNodes } from '../data/seed';
-import { ensureShellNodes } from '../data/shellAdditions';
+import { ensureShellNodes, dedupeNodes } from '../data/shellAdditions';
 import { db, initDatabase, safeWrite, getKV, setKV } from '../services/db';
 import { useNotificationStore } from './notificationStore';
 import { useSystemStore } from './systemStore';
@@ -106,12 +106,26 @@ export const useFileSystemStore = create<FileSystemState>()((set, get) => ({
       const rows = await db.files.toArray();
       const recent = (await getKV<string[]>('fs.recent')) ?? [];
       if (!seeded || rows.length === 0) {
-        const merged: NodeMap = { ...buildSeedNodes() };
+        // Rows win; the seed only fills gaps. Matching by parent+kind+name
+        // prevents a second copy of default shortcuts when the seed flag was
+        // lost but user content still exists.
+        const merged: NodeMap = {};
         for (const row of rows) merged[row.id] = row;
+        const nameKey = (node: FSNode) => `${node.parentId ?? 'root'}|${node.kind}|${node.name.toLowerCase()}`;
+        const taken = new Set(Object.values(merged).map(nameKey));
+        for (const [id, node] of Object.entries(buildSeedNodes())) {
+          if (merged[id] || taken.has(nameKey(node))) continue;
+          merged[id] = node;
+          taken.add(nameKey(node));
+        }
         const ensured = ensureShellNodes(merged);
-        await safeWrite(() => db.files.bulkPut(Object.values(ensured.nodes)));
+        const deduped = dedupeNodes(ensured.nodes);
+        await safeWrite(() => db.files.bulkPut(Object.values(deduped.nodes)));
+        if (deduped.removed.length) {
+          await safeWrite(() => db.files.bulkDelete(deduped.removed));
+        }
         await setKV(SEED_FLAG, true);
-        set({ nodes: ensured.nodes, hydrated: true, usedBytes: totalUsedBytes(ensured.nodes), recentIds: recent });
+        set({ nodes: deduped.nodes, hydrated: true, usedBytes: totalUsedBytes(deduped.nodes), recentIds: recent });
       } else {
         const nodes: NodeMap = {};
         for (const row of rows) nodes[row.id] = row;
@@ -124,7 +138,13 @@ export const useFileSystemStore = create<FileSystemState>()((set, get) => ({
         if (ensured.added.length) {
           await safeWrite(() => db.files.bulkPut(ensured.added));
         }
-        set({ nodes: ensured.nodes, hydrated: true, usedBytes: totalUsedBytes(ensured.nodes), recentIds: recent });
+        // Heal legacy states where a re-seed duplicated default shortcuts.
+        const deduped = dedupeNodes(ensured.nodes);
+        if (deduped.removed.length) {
+          await safeWrite(() => db.files.bulkDelete(deduped.removed));
+        }
+        await setKV(SEED_FLAG, true);
+        set({ nodes: deduped.nodes, hydrated: true, usedBytes: totalUsedBytes(deduped.nodes), recentIds: recent });
       }
     } catch (error) {
       console.error('[Windows 12 Concept] Failed to hydrate the file system', error);

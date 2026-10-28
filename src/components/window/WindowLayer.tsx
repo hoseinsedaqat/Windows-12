@@ -7,7 +7,9 @@ export function WindowLayer() {
   const windows = useWindowStore((state) => state.windows);
   return (
     <div className="pointer-events-none absolute inset-0 z-[4000]">
-      <div className="pointer-events-auto absolute inset-0">
+      {/* NOTE: this wrapper must stay pointer-events-none — an auto wrapper
+          covers the whole desktop and swallows every icon click/hover. */}
+      <div className="pointer-events-none absolute inset-0">
         {windows.map((win) => (
           <MemoWindow key={win.id} win={win} />
         ))}

@@ -75,9 +75,11 @@ export function StartMenu() {
       className="panel animate-slide-up fixed z-[7000] flex flex-col overflow-hidden"
       style={{
         bottom: TASKBAR_HEIGHT + 10,
-        left: isRTL ? undefined : '50%',
-        right: isRTL ? '50%' : undefined,
-        transform: isRTL ? 'translateX(50%)' : 'translateX(-50%)',
+        // Centre with auto margins: the slide-up animation's fill-mode would
+        // override any inline transform, so transform-based centring breaks.
+        left: 0,
+        right: 0,
+        marginInline: 'auto',
         width: 'min(660px, calc(100vw - 24px))',
         height: 'min(700px, calc(100vh - 90px))',
       }}

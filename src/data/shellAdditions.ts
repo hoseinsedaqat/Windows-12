@@ -131,3 +131,32 @@ export function ensureShellNodes(nodes: NodeMap): { nodes: NodeMap; added: FSNod
   for (const node of missing) next[node.id] = node;
   return { nodes: next, added: missing };
 }
+
+/**
+ * Repair duplicated shell content: if two nodes share the same parent, kind
+ * and name (which the unique-name rule normally forbids), only the oldest
+ * survives. This heals installations where a re-seed merged a second copy of
+ * the default shortcuts on top of the persisted ones.
+ */
+export function dedupeNodes(nodes: NodeMap): { nodes: NodeMap; removed: string[] } {
+  const keep = new Map<string, FSNode>();
+  const removed: string[] = [];
+  const ordered = Object.values(nodes).sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id));
+  for (const node of ordered) {
+    const key = `${node.parentId ?? 'root'}|${node.kind}|${node.name.toLowerCase()}`;
+    const current = keep.get(key);
+    if (!current) {
+      keep.set(key, node);
+      continue;
+    }
+    // The older copy wins; the newer duplicate is dropped.
+    removed.push(node.id);
+  }
+  if (removed.length === 0) return { nodes, removed };
+  const removedSet = new Set(removed);
+  const next: NodeMap = {};
+  for (const [id, node] of Object.entries(nodes)) {
+    if (!removedSet.has(id)) next[id] = node;
+  }
+  return { nodes: next, removed };
+}
