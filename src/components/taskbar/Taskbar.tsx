@@ -247,7 +247,7 @@ export function Taskbar() {
 
       {/* Centred cluster: start, search box, task view, apps */}
       <div
-        className={`scrollbar-none flex min-w-0 max-w-[calc(100vw-150px)] items-center gap-1 overflow-x-auto md:max-w-[calc(100vw-330px)] ${
+        className={`scrollbar-none flex min-w-0 max-w-[calc(100vw-200px)] items-center gap-1 overflow-x-auto md:max-w-[calc(100vw-330px)] ${
           centered ? 'flex-none' : `flex-1 ${isRTL ? 'justify-end' : 'justify-start'}`
         }`}
       >
@@ -276,7 +276,7 @@ export function Taskbar() {
           <LayoutGrid size={iconSize - 12} />
         </TaskbarButton>
 
-        <div className="mx-1 h-6 w-px bg-[var(--border-strong)]" aria-hidden />
+        <div className="mx-1 hidden h-6 w-px bg-[var(--border-strong)] sm:block" aria-hidden />
 
         {taskbarApps.map(({ appId, windows: appWindows, active }) => (
           <div key={appId} className="relative">
@@ -337,7 +337,7 @@ export function Taskbar() {
           </button>
         ) : null}
 
-        <div className="relative" ref={trayRef}>
+        <div className="relative hidden md:block" ref={trayRef}>
           <TrayButton label={t('tray.hiddenIcons')} active={trayFlyout} onClick={() => setTrayFlyout((value) => !value)}>
             <ChevronUp size={14} />
           </TrayButton>
@@ -396,8 +396,8 @@ export function Taskbar() {
 
         <TrayButton label={`${formatTime(now)} · ${formatDate(now)}`} active={panel === 'calendar'} onClick={() => setPanel(panel === 'calendar' ? null : 'calendar')}>
           <div className={`flex flex-col leading-tight ${isRTL ? 'items-start' : 'items-end'}`}>
-            <span className="text-[12px] font-medium tabular-nums">{formatTime(now)}</span>
-            <span className="text-[10.5px] opacity-75 tabular-nums">{formatDate(now)}</span>
+            <span className="whitespace-nowrap text-[12px] font-medium tabular-nums">{formatTime(now)}</span>
+            <span className="hidden whitespace-nowrap text-[10.5px] opacity-75 tabular-nums sm:block">{formatDate(now)}</span>
           </div>
         </TrayButton>
 
@@ -473,12 +473,14 @@ function TrayButton({
   onClick,
   children,
   badge,
+  className = '',
 }: {
   label: string;
   active?: boolean;
   onClick: () => void;
   children: React.ReactNode;
   badge?: number;
+  className?: string;
 }) {
   return (
     <button
@@ -486,9 +488,9 @@ function TrayButton({
       onClick={onClick}
       title={label}
       aria-label={label}
-      className={`relative flex h-10 items-center gap-1.5 rounded-md px-2 text-[var(--text)] transition-colors hover:bg-[var(--hover)] ${
+      className={`relative flex h-10 shrink-0 items-center gap-1.5 rounded-md px-2 text-[var(--text)] transition-colors hover:bg-[var(--hover)] ${
         active ? 'bg-[var(--active)]' : ''
-      }`}
+      } ${className}`}
     >
       {children}
       {badge ? (
