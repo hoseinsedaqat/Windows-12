@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - test
-      - arena/a88878bf-windows-12
   workflow_dispatch:
 
 # Allow GITHUB_TOKEN to publish to Pages
