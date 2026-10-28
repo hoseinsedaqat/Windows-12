@@ -147,13 +147,13 @@ describe('shell integration', () => {
     expect(useWindowStore.getState().windows.length).toBeGreaterThanOrEqual(6);
   });
 
-  it('shows the shell panels: start, search, quick settings, notifications, task view', async () => {
+  it('shows the shell panels: start, quick settings, notifications, task view', async () => {
     await act(async () => {
       useSystemStore.getState().unlock();
     });
     await settle(80);
 
-    for (const panel of ['start', 'search', 'quick', 'notifications', 'taskview', 'calendar'] as const) {
+    for (const panel of ['start', 'quick', 'notifications', 'taskview', 'calendar'] as const) {
       await act(async () => {
         useShellStore.getState().setPanel(panel);
       });

@@ -49,7 +49,7 @@ export function WeatherFlyout() {
   return (
     <div
       ref={ref}
-      className={`panel fixed z-[6200] w-[320px] overflow-hidden p-4 ${isRTL ? 'right-3' : 'left-3'}`}
+      className={`panel fixed z-[6200] w-[min(320px,calc(100vw-24px))] overflow-hidden p-4 ${isRTL ? 'right-3' : 'left-3'}`}
       style={{ bottom: TASKBAR_HEIGHT + 8 }}
       role="dialog"
       aria-label={t('weather.title')}

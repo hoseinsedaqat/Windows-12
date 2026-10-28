@@ -123,7 +123,7 @@ export function useShellShortcuts(enabled: boolean): void {
       }
       if (combo(['s'], true, true)) {
         event.preventDefault();
-        useShellStore.getState().togglePanel('search');
+        useShellStore.getState().openSearch('button');
         return;
       }
       if ((ctrl && shift && key === 'escape') || (ctrl && alt && key === 't')) {

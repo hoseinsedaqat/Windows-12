@@ -28,6 +28,7 @@ import { useShellStore } from '../../stores/shellStore';
 import { useNotificationStore } from '../../stores/notificationStore';
 import { AppIcon, ConceptLogo } from '../icons/AppIcons';
 import { conditionIcon } from '../panels/WeatherFlyout';
+import { SearchPill } from '../panels/SearchPanel';
 import { getWeather } from '../../services/weather';
 import { useT } from '../../i18n';
 import { useClock } from '../../hooks/useAppearance';
@@ -63,6 +64,10 @@ export function Taskbar() {
   const battery = useSystemStore((state) => state.battery);
   const panel = useShellStore((state) => state.panel);
   const setPanel = useShellStore((state) => state.setPanel);
+  const searchOpen = useShellStore((state) => state.searchOpen);
+  const searchSource = useShellStore((state) => state.searchSource);
+  const openSearch = useShellStore((state) => state.openSearch);
+  const closeSearch = useShellStore((state) => state.closeSearch);
   const openContextMenu = useShellStore((state) => state.openContextMenu);
   const notifications = useNotificationStore((state) => state.notifications);
 
@@ -241,7 +246,11 @@ export function Taskbar() {
       </div>
 
       {/* Centred cluster: start, search box, task view, apps */}
-      <div className={`flex items-center gap-1 ${centered ? 'flex-none' : `flex-1 ${isRTL ? 'justify-end' : 'justify-start'}`}`}>
+      <div
+        className={`scrollbar-none flex min-w-0 max-w-[calc(100vw-200px)] items-center gap-1 overflow-x-auto md:max-w-[calc(100vw-330px)] ${
+          centered ? 'flex-none' : `flex-1 ${isRTL ? 'justify-end' : 'justify-start'}`
+        }`}
+      >
         <TaskbarButton
           label={t('taskbar.start')}
           active={panel === 'start'}
@@ -253,24 +262,13 @@ export function Taskbar() {
           <ConceptLogo size={iconSize - 6} />
         </TaskbarButton>
 
-        <button
-          type="button"
-          onClick={() => setPanel(panel === 'search' ? null : 'search')}
-          className={`mx-0.5 hidden h-9 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 transition-colors hover:bg-[var(--hover)] sm:flex ${
-            panel === 'search' ? 'ring-1 ring-[var(--accent)]' : ''
-          }`}
-          style={{ width: 210 }}
-          aria-label={t('taskbar.search')}
+        <SearchPill />
+        <TaskbarButton
+          label={t('taskbar.search')}
+          active={searchOpen && searchSource === 'button'}
+          onClick={() => (searchOpen && searchSource === 'button' ? closeSearch() : openSearch('button'))}
+          className="sm:hidden"
         >
-          <Search size={14} className="opacity-70" />
-          <span className="text-[12px] opacity-70">{t('taskbar.search')}</span>
-          <span
-            className="ml-auto h-5 w-5 rounded-full ring-1 ring-white/30"
-            style={{ background: 'conic-gradient(from 210deg, #60a5fa, #a78bfa, #f472b6, #60a5fa)' }}
-            aria-hidden
-          />
-        </button>
-        <TaskbarButton label={t('taskbar.search')} active={panel === 'search'} onClick={() => setPanel(panel === 'search' ? null : 'search')} className="sm:hidden">
           <Search size={iconSize - 12} />
         </TaskbarButton>
 
@@ -278,7 +276,7 @@ export function Taskbar() {
           <LayoutGrid size={iconSize - 12} />
         </TaskbarButton>
 
-        <div className="mx-1 h-6 w-px bg-[var(--border-strong)]" aria-hidden />
+        <div className="mx-1 hidden h-6 w-px bg-[var(--border-strong)] sm:block" aria-hidden />
 
         {taskbarApps.map(({ appId, windows: appWindows, active }) => (
           <div key={appId} className="relative">
@@ -339,7 +337,7 @@ export function Taskbar() {
           </button>
         ) : null}
 
-        <div className="relative" ref={trayRef}>
+        <div className="relative hidden md:block" ref={trayRef}>
           <TrayButton label={t('tray.hiddenIcons')} active={trayFlyout} onClick={() => setTrayFlyout((value) => !value)}>
             <ChevronUp size={14} />
           </TrayButton>
@@ -398,8 +396,8 @@ export function Taskbar() {
 
         <TrayButton label={`${formatTime(now)} · ${formatDate(now)}`} active={panel === 'calendar'} onClick={() => setPanel(panel === 'calendar' ? null : 'calendar')}>
           <div className={`flex flex-col leading-tight ${isRTL ? 'items-start' : 'items-end'}`}>
-            <span className="text-[12px] font-medium tabular-nums">{formatTime(now)}</span>
-            <span className="text-[10.5px] opacity-75 tabular-nums">{formatDate(now)}</span>
+            <span className="whitespace-nowrap text-[12px] font-medium tabular-nums">{formatTime(now)}</span>
+            <span className="hidden whitespace-nowrap text-[10.5px] opacity-75 tabular-nums sm:block">{formatDate(now)}</span>
           </div>
         </TrayButton>
 
@@ -475,12 +473,14 @@ function TrayButton({
   onClick,
   children,
   badge,
+  className = '',
 }: {
   label: string;
   active?: boolean;
   onClick: () => void;
   children: React.ReactNode;
   badge?: number;
+  className?: string;
 }) {
   return (
     <button
@@ -488,9 +488,9 @@ function TrayButton({
       onClick={onClick}
       title={label}
       aria-label={label}
-      className={`relative flex h-10 items-center gap-1.5 rounded-md px-2 text-[var(--text)] transition-colors hover:bg-[var(--hover)] ${
+      className={`relative flex h-10 shrink-0 items-center gap-1.5 rounded-md px-2 text-[var(--text)] transition-colors hover:bg-[var(--hover)] ${
         active ? 'bg-[var(--active)]' : ''
-      }`}
+      } ${className}`}
     >
       {children}
       {badge ? (

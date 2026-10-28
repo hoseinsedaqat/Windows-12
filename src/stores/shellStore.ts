@@ -3,7 +3,7 @@ import type { ContextMenuItem } from '../types';
 
 /** Shell-level UI state: which flyout is open, context menus and modal dialogs. */
 
-export type ShellPanel = 'start' | 'search' | 'quick' | 'notifications' | 'taskview' | 'accessibility' | 'calendar' | 'network' | 'sound' | 'weather' | null;
+export type ShellPanel = 'start' | 'quick' | 'notifications' | 'taskview' | 'accessibility' | 'calendar' | 'network' | 'sound' | 'weather' | null;
 
 export interface ContextMenuState {
   x: number;
@@ -38,6 +38,14 @@ export interface ShellState {
   /** True while a drag operation owns the pointer (blocks stray clicks). */
   dragging: boolean;
 
+  /** Inline taskbar search: query text shared by pill + flyout. */
+  searchQuery: string;
+  searchOpen: boolean;
+  /** 'pill' = focused taskbar input (flyout only with a query), 'button' = compact flyout with its own input. */
+  searchSource: 'pill' | 'button';
+  setSearchQuery: (query: string) => void;
+  openSearch: (source: 'pill' | 'button') => void;
+  closeSearch: () => void;
   setPanel: (panel: ShellPanel) => void;
   togglePanel: (panel: Exclude<ShellPanel, null>) => void;
   closePanels: () => void;
@@ -62,7 +70,13 @@ export const useShellStore = create<ShellState>()((set, get) => ({
   explorerSelection: [],
   dragging: false,
 
-  setPanel: (panel) => set({ panel, contextMenu: null }),
+  searchQuery: '',
+  searchOpen: false,
+  searchSource: 'pill',
+  setSearchQuery: (query) => set({ searchQuery: query, searchOpen: true }),
+  openSearch: (source) => set({ searchOpen: true, searchSource: source, panel: null, contextMenu: null }),
+  closeSearch: () => set({ searchOpen: false, searchQuery: '' }),
+  setPanel: (panel) => set({ panel, contextMenu: null, searchOpen: false }),
   togglePanel: (panel) => set((state) => ({ panel: state.panel === panel ? null : panel, contextMenu: null })),
   closePanels: () => set({ panel: null }),
   openContextMenu: (menu) => set({ contextMenu: menu, panel: null }),
