@@ -62,13 +62,15 @@ export function labelFor(url: string): string {
 }
 
 /** Normalise whatever the user typed in the address bar into a URL. */
-export function normaliseInput(input: string, searchEngine: string): string {
+export function normaliseInput(input: string, _searchEngine?: string): string {
   const value = input.trim();
   if (!value) return NEW_TAB;
   if (value.startsWith('win://')) return value;
   if (/^https?:\/\//i.test(value)) return value;
   if (/^[\w-]+(\.[\w-]+)+(:\d+)?(\/\S*)?$/.test(value)) return `https://${value}`;
-  if (value.includes(' ') || !value.includes('.')) return `${searchEngine}${encodeURIComponent(value)}`;
+  // Queries become an internal results page: real engines refuse framing,
+  // so the simulator renders genuine results itself (see SearchPage).
+  if (value.includes(' ') || !value.includes('.')) return `win://search?q=${encodeURIComponent(value)}`;
   return `https://${value}`;
 }
 

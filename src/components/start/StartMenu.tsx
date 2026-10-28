@@ -77,7 +77,7 @@ export function StartMenu() {
         bottom: TASKBAR_HEIGHT + 10,
         left: isRTL ? undefined : '50%',
         right: isRTL ? '50%' : undefined,
-        transform: 'translateX(50%)',
+        transform: isRTL ? 'translateX(50%)' : 'translateX(-50%)',
         width: 'min(660px, calc(100vw - 24px))',
         height: 'min(700px, calc(100vh - 90px))',
       }}

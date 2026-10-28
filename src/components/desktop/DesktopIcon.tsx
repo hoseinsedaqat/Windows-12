@@ -23,7 +23,6 @@ interface Props {
   onPointerDown: (event: React.PointerEvent) => void;
   onPointerMove: (event: React.PointerEvent) => void;
   onPointerUp: (event: React.PointerEvent) => void;
-  onDoubleClick: () => void;
   onContextMenu: (event: React.MouseEvent) => void;
 }
 
@@ -39,7 +38,6 @@ export function DesktopIcon({
   onPointerDown,
   onPointerMove,
   onPointerUp,
-  onDoubleClick,
   onContextMenu,
 }: Props) {
   const [name, setName] = useState(node.name);
@@ -76,17 +74,16 @@ export function DesktopIcon({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
-      onDoubleClick={(event) => {
-        event.stopPropagation();
-        onDoubleClick();
-      }}
+      onDoubleClick={(event) => event.stopPropagation()}
       onContextMenu={onContextMenu}
       role="button"
       tabIndex={-1}
       aria-label={node.name}
       data-node-id={node.id}
     >
-      <IconGraphic node={node} size={metrics.icon} trashEmpty={trashEmpty} />
+      <span className="inline-block" style={{ filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.35))' }}>
+        <IconGraphic node={node} size={metrics.icon} trashEmpty={trashEmpty} />
+      </span>
       {renaming ? (
         <input
           ref={inputRef}
@@ -105,7 +102,19 @@ export function DesktopIcon({
           style={{ fontSize: metrics.font }}
         />
       ) : (
-        <span style={{ fontSize: metrics.font }}>{node.name}</span>
+        <span
+          className="mx-auto block max-w-full overflow-hidden px-0.5 text-center leading-tight"
+          style={{
+            fontSize: metrics.font,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflowWrap: 'break-word',
+            textShadow: '0 1px 3px rgba(0,0,0,0.65)',
+          }}
+        >
+          {node.name}
+        </span>
       )}
     </div>
   );
@@ -123,11 +132,12 @@ function IconGraphic({ node, size, trashEmpty }: { node: FSNode; size: number; t
     const targetId = node.metadata.targetId as string | undefined;
     if (appId) {
       return (
-        <span className="relative">
+        <span className="relative inline-block">
           <AppIcon appId={appId} size={size} />
-          <span className="absolute -bottom-0.5 -right-0.5 rounded-full bg-white/85 p-[1px] shadow">
-            <svg width={size * 0.28} height={size * 0.28} viewBox="0 0 16 16" aria-hidden>
-              <path d="M3 8l4 4 6-8" fill="none" stroke="#334155" strokeWidth="2" />
+          {/* Classic Windows shortcut arrow overlay */}
+          <span className="absolute -bottom-0.5 -left-0.5 rounded-[3px] bg-white shadow ring-1 ring-black/20">
+            <svg width={size * 0.3} height={size * 0.3} viewBox="0 0 16 16" aria-hidden>
+              <path d="M3.5 12.5 10 6M10 6H6.5M10 6v3.5" fill="none" stroke="#1d4ed8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </span>
         </span>

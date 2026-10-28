@@ -26,7 +26,7 @@ npm run dev        # http://localhost:5173
 | `npm run dev` | Vite dev server on `0.0.0.0:5173` |
 | `npm run build` | `tsc -b` type-check + production bundle in `dist/` |
 | `npm run typecheck` | Type-check only (strict mode) |
-| `npm test` | 120 unit + integration tests (Vitest, jsdom, fake-indexeddb) |
+| `npm test` | 155 unit + integration tests (Vitest, jsdom, fake-indexeddb) |
 
 The first boot shows the logo → loading → welcome → lock screen. The demo password is
 **`1234`** (change it in *Settings → Accounts → Sign-in options*, or enable auto sign-in).
@@ -61,8 +61,16 @@ The first boot shows the logo → loading → welcome → lock screen. The demo 
   all; suppressed by focus assist; can be turned off in Settings.
 - **i18n** — English and Persian with full RTL, Persian calendar, Persian digits,
   locale-aware numbers/currency/dates, switchable live with no reload.
+- **Windows 11-style taskbar** — weather chip with a 5-day flyout (simulated and
+  labelled), centred Start + search box + pins, tray with hidden-icons flyout
+  (Bluetooth / night light / OneDrive / security), network-volume-battery cluster,
+  clock and bell, show-desktop sliver.
+- **Real in-simulator web search** — queries render genuine results fetched live from
+  the Wikipedia APIs (CORS), with type-ahead suggestions, a summary card and honest
+  one-click buttons that run the same query on Google/Bing/DuckDuckGo/YouTube in a
+  real browser tab.
 
-### Applications (19)
+### Applications (23)
 | App | Highlights |
 | --- | --- |
 | **File Explorer / This PC** | Home, Desktop, Documents, Downloads, Pictures, Music, Videos, OneDrive (demo), This PC, Recycle Bin. Grid/list/details, sortable columns, breadcrumbs, search, type filter, back/forward history, multi-select, copy/cut/paste, rename, delete/restore, new folder, drag & drop, properties, folder sizes, storage usage, **real uploads** through the file picker, downloads of virtual files. "New" creates Folder / Word / Excel / PowerPoint / Text / Note / Shortcut and opens it in the matching app. |
@@ -72,6 +80,8 @@ The first boot shows the logo → loading → welcome → lock screen. The demo 
 | **Notepad / Notes** | Plain text with autosave option, find & replace, line/character counts, save status; Notes with titles, tags, colours, pinning, search, trash & restore — both stored in the same virtual file system. |
 | **Browser (Concept Browser)** | Tabs (new/close/reorder/drag), back/forward/reload, address bar + search, bookmarks, history, downloads, three-dot menu, settings, `win://` internal pages, modern new-tab page. Sites that allow framing are shown in a sandboxed iframe; the rest get an **honest notice** plus "open in a real browser tab". It never fakes a certificate or security state. |
 | **Accounting** | Dashboard (cash, receivables, payables, income, expense, net profit, margin, overdue alerts), Customers, Suppliers, Accounts, Invoices (lines, per-line discount %, extra discount, tax, issue/due dates, draft → unpaid → partial → paid, payments), Income, Expenses, Transactions, Profit & loss, Cash flow, Categories, Settings (company, currency, tax rate, invoice prefix, next number, fiscal year start). Search, filters, pagination, CSV export, printable invoices, IndexedDB persistence, clearly labelled demo data, real arithmetic with cent rounding. No bank, tax or external service is contacted. |
+| **Visual Studio Code (concept)** | CodeMirror-powered editor over the virtual file system: explorer sidebar tree, tabs with dirty dots, syntax highlighting for JS/TS/JSON/HTML/CSS/Markdown/Python, dark/light editor themes, menu bar, command palette (Ctrl+Shift+P), Ctrl+S saves into IndexedDB, status bar with Ln/Col and language mode. Sample source files ship in Documents. |
+| **Games — Minesweeper, Snake, 2048** | Playable classics in the desktop `games` folder: Minesweeper with three difficulties, first-click safety, flags, chording, timer and best-time records; Snake with keyboard/touch controls, growing speed and high scores; 2048 with merges, score/best tracking and win detection. Records persist per browser. |
 | **Calculator, Calendar, Clock, Run, Photos, Paint, Terminal, Task Manager, Recycle Bin, Settings** | Scientific calculator with history/memory (own shunting-yard evaluator); calendar with events; world clock + timer + stopwatch + alarms; Run dialog with real shell commands; photo viewer/slideshow with "set as wallpaper"; paint with brush/eraser/shapes/fill/eyedropper/undo; a 38-command simulated shell over the virtual file system; task manager with processes and end-task. |
 
 ### Keyboard shortcuts
@@ -99,11 +109,12 @@ src/
 │                    auth (demo digest), launcher, office export (docx/xlsx/pptx)
 ├── hooks/           useDocument (autosave/conflicts), useShortcuts, useSearch, useUi…
 ├── components/      shell: desktop, taskbar, start, panels, window chrome, dialogs, UI kit
-├── applications/    19 lazily loaded apps, mapped by app id in registry.ts
+├── applications/    23 lazily loaded apps, mapped by app id in registry.ts
 ├── data/            wallpapers, settings navigation model, seed content, sample images
-├── i18n/            en.ts / fa.ts dictionaries (1199 keys each) + hooks
+├── i18n/            en.ts / fa.ts dictionaries (1275 keys each) + hooks
 └── tests/           Vitest suites (file system, formulas, windows, storage, settings,
-                     accounting, documents, shell integration)
+                     accounting, documents, shell integration, power/session, games,
+                     web search, weather, desktop interaction)
 ```
 
 Design rules the code follows:
@@ -182,6 +193,14 @@ npm test
 - `documents.test.ts` — document factories for every kind, Word save/reload/DOCX export,
   HTML sanitising, Excel formulas surviving a reload + real XLSX round-trip, PowerPoint
   slides/notes/shapes + PPTX export, Notepad/Notes persistence.
+- `games.test.ts` — Minesweeper (first-click safety, flood reveal, flags, chording,
+  win/lose), Snake (movement, reversing, eating, wall & self collision, pause),
+  2048 (merges, scoring, dead-board detection, random tiles).
+- `websearch.test.ts` — Wikipedia API URL shape (`origin=*`), result parsing, HTML
+  stripping, language subdomains, network-failure path, suggestions, external engines.
+- `weather.test.ts` — deterministic per-day simulation, forecast range sanity, °F conversion.
+- `desktop.test.tsx` — icon rendering, single click selects, double click opens, and
+  no accidental open when clicks are far apart in time.
 - `power.test.ts` — demo credential hashing (per-password salt, legacy fallback), boot →
   lock → sign-in, wrong password, auto sign-in, lock/unlock/sign-out, restart & shutdown
   with files, settings and windows intact, activity history, account persistence,

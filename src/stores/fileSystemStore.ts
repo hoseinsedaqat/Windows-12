@@ -24,6 +24,7 @@ import {
 } from '../core/FileSystem';
 import { contentForKind } from '../core/Documents';
 import { buildSeedNodes } from '../data/seed';
+import { ensureShellNodes } from '../data/shellAdditions';
 import { db, initDatabase, safeWrite, getKV, setKV } from '../services/db';
 import { useNotificationStore } from './notificationStore';
 import { useSystemStore } from './systemStore';
@@ -95,7 +96,7 @@ export const useFileSystemStore = create<FileSystemState>()((set, get) => ({
     const available = await initDatabase();
     set({ storageAvailable: available });
     if (!available) {
-      const seed = buildSeedNodes();
+      const seed = ensureShellNodes(buildSeedNodes()).nodes;
       set({ nodes: seed, hydrated: true, usedBytes: totalUsedBytes(seed) });
       useSystemStore.getState().setStorageWarning('error.storageUnavailable');
       return;
@@ -107,9 +108,10 @@ export const useFileSystemStore = create<FileSystemState>()((set, get) => ({
       if (!seeded || rows.length === 0) {
         const merged: NodeMap = { ...buildSeedNodes() };
         for (const row of rows) merged[row.id] = row;
-        await safeWrite(() => db.files.bulkPut(Object.values(merged)));
+        const ensured = ensureShellNodes(merged);
+        await safeWrite(() => db.files.bulkPut(Object.values(ensured.nodes)));
         await setKV(SEED_FLAG, true);
-        set({ nodes: merged, hydrated: true, usedBytes: totalUsedBytes(merged), recentIds: recent });
+        set({ nodes: ensured.nodes, hydrated: true, usedBytes: totalUsedBytes(ensured.nodes), recentIds: recent });
       } else {
         const nodes: NodeMap = {};
         for (const row of rows) nodes[row.id] = row;
@@ -118,11 +120,15 @@ export const useFileSystemStore = create<FileSystemState>()((set, get) => ({
             if (!nodes[id]) nodes[id] = node;
           }
         }
-        set({ nodes, hydrated: true, usedBytes: totalUsedBytes(nodes), recentIds: recent });
+        const ensured = ensureShellNodes(nodes);
+        if (ensured.added.length) {
+          await safeWrite(() => db.files.bulkPut(ensured.added));
+        }
+        set({ nodes: ensured.nodes, hydrated: true, usedBytes: totalUsedBytes(ensured.nodes), recentIds: recent });
       }
     } catch (error) {
       console.error('[Windows 12 Concept] Failed to hydrate the file system', error);
-      const seed = buildSeedNodes();
+      const seed = ensureShellNodes(buildSeedNodes()).nodes;
       set({ nodes: seed, hydrated: true, usedBytes: totalUsedBytes(seed) });
     }
   },
