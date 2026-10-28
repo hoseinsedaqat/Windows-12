@@ -26,7 +26,7 @@ npm run dev        # http://localhost:5173
 | `npm run dev` | Vite dev server on `0.0.0.0:5173` |
 | `npm run build` | `tsc -b` type-check + production bundle in `dist/` |
 | `npm run typecheck` | Type-check only (strict mode) |
-| `npm test` | 111 unit + integration tests (Vitest, jsdom, fake-indexeddb) |
+| `npm test` | 120 unit + integration tests (Vitest, jsdom, fake-indexeddb) |
 
 The first boot shows the logo → loading → welcome → lock screen. The demo password is
 **`1234`** (change it in *Settings → Accounts → Sign-in options*, or enable auto sign-in).
@@ -182,6 +182,10 @@ npm test
 - `documents.test.ts` — document factories for every kind, Word save/reload/DOCX export,
   HTML sanitising, Excel formulas surviving a reload + real XLSX round-trip, PowerPoint
   slides/notes/shapes + PPTX export, Notepad/Notes persistence.
+- `power.test.ts` — demo credential hashing (per-password salt, legacy fallback), boot →
+  lock → sign-in, wrong password, auto sign-in, lock/unlock/sign-out, restart & shutdown
+  with files, settings and windows intact, activity history, account persistence,
+  simulated update check.
 - `shell.test.tsx` — renders the real app: boot → lock → desktop, opens every heavy app,
   drives all shell panels, applies brightness/theme/language live, opens context menus and
   dialogs, and verifies quick settings stay consistent with the settings store.
