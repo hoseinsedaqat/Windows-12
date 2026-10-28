@@ -26,7 +26,7 @@ npm run dev        # http://localhost:5173
 | `npm run dev` | Vite dev server on `0.0.0.0:5173` |
 | `npm run build` | `tsc -b` type-check + production bundle in `dist/` |
 | `npm run typecheck` | Type-check only (strict mode) |
-| `npm test` | 157 unit + integration tests (Vitest, jsdom, fake-indexeddb) |
+| `npm test` | 162 unit + integration tests (Vitest, jsdom, fake-indexeddb) |
 
 The first boot shows the logo → loading → welcome → lock screen. The demo password is
 **`1234`** (change it in *Settings → Accounts → Sign-in options*, or enable auto sign-in).

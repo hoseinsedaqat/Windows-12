@@ -57,6 +57,8 @@ export function WindowFrame({ window: win }: Props) {
     pointerId: number;
     frame: number | null;
     pending: WindowBounds | null;
+    element: HTMLElement | null;
+    captured: boolean;
   } | null>(null);
 
   const bounds = liveBounds ?? win.bounds;
@@ -67,6 +69,13 @@ export function WindowFrame({ window: win }: Props) {
     const state = dragState.current;
     if (!state) return;
     if (state.frame) cancelAnimationFrame(state.frame);
+    if (state.captured && state.element) {
+      try {
+        state.element.releasePointerCapture?.(state.pointerId);
+      } catch {
+        /* already released */
+      }
+    }
     dragState.current = null;
     document.body.classList.remove('dragging-global');
     setSnapPreview(null);
@@ -93,6 +102,16 @@ export function WindowFrame({ window: win }: Props) {
       if (!state || event.pointerId !== state.pointerId) return;
       const dx = event.clientX - state.startX;
       const dy = event.clientY - state.startY;
+      if (!state.captured && Math.hypot(dx, dy) > 3 && state.element) {
+        try {
+          state.element.setPointerCapture?.(event.pointerId);
+          state.captured = true;
+          document.body.classList.add('dragging-global');
+          document.body.style.cursor = state.mode === 'move' ? 'default' : '';
+        } catch {
+          state.element = null;
+        }
+      }
       let next: WindowBounds = { ...state.origin };
 
       if (state.mode === 'move') {
@@ -151,9 +170,8 @@ export function WindowFrame({ window: win }: Props) {
         setLiveBounds(origin);
       }
 
-      (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
-      document.body.classList.add('dragging-global');
-      document.body.style.cursor = mode === 'move' ? 'default' : '';
+      // Capture only once a real drag starts (see onPointerMove): capturing on
+      // pointer-down retargets click events and kills the titlebar buttons.
       dragState.current = {
         mode,
         startX: event.clientX,
@@ -162,6 +180,8 @@ export function WindowFrame({ window: win }: Props) {
         pointerId: event.pointerId,
         frame: null,
         pending: null,
+        element: event.currentTarget as HTMLElement,
+        captured: false,
       };
     },
     [bounds, desktop, focus, isMaximized, win.bounds, win.id, win.restoreBounds],
@@ -224,8 +244,10 @@ export function WindowFrame({ window: win }: Props) {
       <section
         className={`window-frame absolute flex flex-col bg-[var(--surface-solid)] ${isMaximized ? 'maximized' : ''} ${
           animations ? 'animate-window-open' : ''
-        } ${win.closing ? 'pointer-events-none opacity-0 transition-opacity duration-150' : ''}`}
-        style={style}
+        } ${win.closing ? 'opacity-0 transition-opacity duration-150' : ''}`}
+        // pointer-events pinned inline: no ancestor/class caching quirk may ever
+        // leave an open window unable to receive clicks (round-5 regression).
+        style={{ ...style, pointerEvents: win.closing ? 'none' : 'auto' }}
         onPointerDown={() => focus(win.id)}
         aria-label={`${app?.name ?? win.appId} window`}
       >
