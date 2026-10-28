@@ -212,7 +212,14 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'win12-concept.settings',
-      version: 1,
+      version: 2,
+      migrate: (persisted, version) => {
+        const stored = persisted as { settings?: { personalization?: Record<string, unknown> } };
+        if (version < 2 && stored?.settings?.personalization) {
+          stored.settings.personalization.desktopIconLayout = 'auto';
+        }
+        return stored;
+      },
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ settings: state.settings }),
       merge: (persisted, current) => {

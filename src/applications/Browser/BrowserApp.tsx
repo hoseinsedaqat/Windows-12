@@ -42,6 +42,17 @@ import { formatDate, formatTime, formatBytes } from '../../services/format';
 import { downloadText } from '../../services/files';
 import { ToggleRow, Field, Select, Badge, EmptyState } from '../../components/ui/Controls';
 import { notify } from '../../stores/notificationStore';
+import { SearchPage } from './SearchPage';
+
+function searchQuery(page: string): string {
+  const index = page.indexOf('?q=');
+  if (index === -1) return '';
+  try {
+    return decodeURIComponent(page.slice(index + 3));
+  } catch {
+    return '';
+  }
+}
 
 export function BrowserApp({ props, windowId }: AppWindowProps) {
   const { t } = useT();
@@ -369,6 +380,8 @@ export function BrowserApp({ props, windowId }: AppWindowProps) {
           <BrowserSettingsPage />
         ) : page === 'about' ? (
           <AboutPage />
+        ) : page.startsWith('search') ? (
+          <SearchPage query={searchQuery(page)} onNavigate={navigate} />
         ) : (
           <NewTabPage onNavigate={navigate} onDownload={downloadSample} />
         )}

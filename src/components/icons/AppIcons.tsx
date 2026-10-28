@@ -78,16 +78,19 @@ export function PowerPointIcon({ size = 48, className, style }: IconProps) {
 }
 
 export function ChromeIcon({ size = 48, className, style }: IconProps) {
+  // Tricolor pinwheel (red top, yellow bottom-right, green bottom-left) with a
+  // white ring and blue core — the recognisable browser mark, redrawn by hand
+  // from three rotated copies of one arc segment.
+  const segment = 'M4 24A20 20 0 0 1 34 6.68L29 15.34A10 10 0 0 0 14 24Z';
   return (
     <svg {...base(size)} className={className} style={style} role="img" aria-label="Browser">
-      <circle cx="24" cy="24" r="20" fill="#fff" />
-      <path d="M24 4a20 20 0 0 1 17.3 10H24a10 10 0 0 0-8.6 4.9L8.2 7.6A20 20 0 0 1 24 4z" fill="#ea4335" />
-      <path d="M6.7 34A20 20 0 0 1 8.2 7.6l7.2 11.3A10 10 0 0 0 15.5 30z" fill="#fbbc05" transform="rotate(0 24 24)" />
-      <path d="M24 44a20 20 0 0 1-17.3-10l9.8-5.1A10 10 0 0 0 24 34z" fill="#34a853" />
-      <path d="M41.3 14A20 20 0 0 1 24 44v-10a10 10 0 0 0 8.6-15.1z" fill="#4285f4" opacity="0.18" />
-      <path d="M24 44a20 20 0 0 0 17.3-30H24a10 10 0 0 1 0 20z" fill="#fbbc05" opacity="0" />
-      <circle cx="24" cy="24" r="9" fill="#fff" />
-      <circle cx="24" cy="24" r="7.4" fill="#4285f4" />
+      <circle cx="24" cy="24" r="21" fill="#fff" />
+      <path d={segment} fill="#ea4335" />
+      <path d={segment} fill="#fbbc05" transform="rotate(120 24 24)" />
+      <path d={segment} fill="#34a853" transform="rotate(240 24 24)" />
+      <circle cx="24" cy="24" r="10" fill="#fff" />
+      <circle cx="24" cy="24" r="7.6" fill="#4285f4" />
+      <circle cx="21.6" cy="21.6" r="2.6" fill="#a8c7fa" opacity="0.7" />
     </svg>
   );
 }
@@ -147,20 +150,23 @@ export function RecycleBinIcon({ size = 48, className, style, full }: IconProps 
 }
 
 export function SettingsIcon({ size = 48, className, style }: IconProps) {
+  const teeth = [0, 45, 90, 135, 180, 225, 270, 315];
   return (
     <svg {...base(size)} className={className} style={style} role="img" aria-label="Settings">
       <defs>
         <linearGradient id="w12-gear" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#94a3b8" />
-          <stop offset="100%" stopColor="#475569" />
+          <stop offset="0%" stopColor="#aeb9c8" />
+          <stop offset="100%" stopColor="#5b6b7f" />
         </linearGradient>
       </defs>
-      <path
-        d="M24 6l3.4 3.1 4.5-.9 1.5 4.3 4.2 1.9-1.3 4.4 2.6 3.8-3.3 3 0 4.6-4.5.6-2.3 4-4.3-1.7-4.3 1.7-2.3-4-4.5-.6 0-4.6-3.3-3 2.6-3.8-1.3-4.4 4.2-1.9 1.5-4.3 4.5.9z"
-        fill="url(#w12-gear)"
-      />
-      <circle cx="24" cy="24" r="7" fill="#e2e8f0" />
-      <circle cx="24" cy="24" r="3.4" fill="#64748b" />
+      <g fill="url(#w12-gear)">
+        {teeth.map((angle) => (
+          <rect key={angle} x="21.2" y="3.6" width="5.6" height="10" rx="2.6" transform={`rotate(${angle} 24 24)`} />
+        ))}
+        <circle cx="24" cy="24" r="13.6" />
+      </g>
+      <circle cx="24" cy="24" r="6.8" fill="#eef2f7" />
+      <circle cx="24" cy="24" r="3.2" fill="#5b6b7f" />
     </svg>
   );
 }
@@ -392,6 +398,78 @@ export function ConceptLogo({ size = 96, className, style }: IconProps) {
   );
 }
 
+export function VSCodeIcon({ size = 48, className, style }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} style={style} role="img" aria-label="Visual Studio Code">
+      <path d="M34.5 5.5 14.8 20.9 8.5 16.1 5 17.8v12.4l3.5 1.7 6.3-4.8L34.5 42.5 43 38.6V9.4Z" fill="#007acc" />
+      <path d="M34.5 5.5 43 9.4v29.2l-8.5 3.9Z" fill="#1f9cf0" />
+      <path d="M34.5 5.5 14.8 20.9l3.9 3.1L34.5 12Z" fill="#0065a9" />
+      <path d="M34.5 13.6 21.6 24l12.9 10.4Z" fill="#fff" />
+      <path d="M8.5 20.4v7.2L13.2 24Z" fill="#fff" />
+    </svg>
+  );
+}
+
+export function MinesweeperIcon({ size = 48, className, style }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} style={style} role="img" aria-label="Minesweeper">
+      <rect x="6" y="6" width="36" height="36" rx="6" fill="#cbd5e1" />
+      <g fill="#94a3b8">
+        <rect x="9" y="9" width="14" height="14" rx="2" />
+        <rect x="25" y="9" width="14" height="14" rx="2" />
+        <rect x="9" y="25" width="14" height="14" rx="2" />
+      </g>
+      <rect x="25" y="25" width="14" height="14" rx="2" fill="#e2e8f0" />
+      <circle cx="32" cy="32" r="6.4" fill="#1e293b" />
+      <g stroke="#1e293b" strokeWidth="2" strokeLinecap="round">
+        <path d="M32 22.6v3.2M32 38.2v3.2M22.6 32h3.2M38.2 32h3.2M25.4 25.4l2.3 2.3M36.3 36.3l2.3 2.3M38.6 25.4l-2.3 2.3M27.7 36.3l-2.3 2.3" />
+      </g>
+      <circle cx="29.8" cy="29.8" r="1.7" fill="#f8fafc" />
+    </svg>
+  );
+}
+
+export function SnakeIcon({ size = 48, className, style }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} style={style} role="img" aria-label="Snake">
+      <rect x="6" y="6" width="36" height="36" rx="6" fill="#064e3b" />
+      <g fill="#0a6b52" opacity="0.55">
+        <rect x="10" y="10" width="8" height="8" />
+        <rect x="26" y="10" width="8" height="8" />
+        <rect x="18" y="18" width="8" height="8" />
+        <rect x="10" y="26" width="8" height="8" />
+        <rect x="26" y="26" width="8" height="8" />
+      </g>
+      <path
+        d="M12 34h10a4 4 0 0 0 4-4v-8a4 4 0 0 1 4-4h6"
+        fill="none"
+        stroke="#4ade80"
+        strokeWidth="6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="37" cy="18" r="4.6" fill="#4ade80" />
+      <circle cx="38.4" cy="16.6" r="1.1" fill="#052e16" />
+      <circle cx="13" cy="13" r="2.8" fill="#f87171" />
+    </svg>
+  );
+}
+
+export function Game2048Icon({ size = 48, className, style }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} style={style} role="img" aria-label="2048">
+      <rect x="6" y="6" width="36" height="36" rx="6" fill="#bbada0" />
+      <rect x="10" y="10" width="13" height="13" rx="2.5" fill="#eee4da" />
+      <rect x="25" y="10" width="13" height="13" rx="2.5" fill="#ede0c8" />
+      <rect x="10" y="25" width="13" height="13" rx="2.5" fill="#f2b179" />
+      <rect x="25" y="25" width="13" height="13" rx="2.5" fill="#ed7c0c" />
+      <text x="31.5" y="35.5" textAnchor="middle" fontFamily="Segoe UI, sans-serif" fontSize="9" fontWeight="700" fill="#f9f8f4">
+        2048
+      </text>
+    </svg>
+  );
+}
+
 const APP_ICONS: Record<string, (props: IconProps) => JSX.Element> = {
   explorer: ExplorerIcon,
   chrome: ChromeIcon,
@@ -412,6 +490,10 @@ const APP_ICONS: Record<string, (props: IconProps) => JSX.Element> = {
   run: RunIcon,
   recyclebin: RecycleBinIcon,
   store: StoreIcon,
+  vscode: VSCodeIcon,
+  minesweeper: MinesweeperIcon,
+  snake: SnakeIcon,
+  game2048: Game2048Icon,
 };
 
 export function AppIcon({ appId, size = 32, className, style }: IconProps & { appId: string }) {

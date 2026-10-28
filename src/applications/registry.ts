@@ -33,6 +33,10 @@ const COMPONENTS: Record<string, LazyApp> = {
   taskmanager: lazy(() => import('./TaskManager/TaskManagerApp')),
   settings: lazy(() => import('./Settings/SettingsApp')),
   run: lazy(() => import('./Run/RunApp')),
+  vscode: lazy(() => import('./VSCode/VSCodeApp')),
+  minesweeper: lazy(() => import('./Games/MinesweeperApp')),
+  snake: lazy(() => import('./Games/SnakeApp')),
+  game2048: lazy(() => import('./Games/Game2048App')),
 };
 
 export function getAppComponent(appId: string): LazyApp | null {

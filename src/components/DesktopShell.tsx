@@ -8,6 +8,7 @@ import { QuickSettings } from './panels/QuickSettings';
 import { NotificationCenter, Toasts } from './panels/NotificationCenter';
 import { TaskView, AltTabOverlay } from './panels/TaskView';
 import { CalendarFlyout } from './panels/CalendarFlyout';
+import { WeatherFlyout } from './panels/WeatherFlyout';
 import { useWindowStore } from '../stores/windowStore';
 import { useShellShortcuts } from '../hooks/useShortcuts';
 import { useShellStore } from '../stores/shellStore';
@@ -65,6 +66,7 @@ export function DesktopShell() {
       <QuickSettings />
       <NotificationCenter />
       <CalendarFlyout />
+      <WeatherFlyout />
       <TaskView />
       <AltTabOverlay />
       <Toasts />

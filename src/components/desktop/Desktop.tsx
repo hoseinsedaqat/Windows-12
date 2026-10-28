@@ -55,7 +55,11 @@ export function Desktop() {
   const [marquee, setMarquee] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [dragOffset, setDragOffset] = useState<Position | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
-  const dragRef = useRef<{ ids: string[]; startX: number; startY: number; origins: Record<string, Position>; moved: boolean } | null>(null);
+  const dragRef = useRef<{ ids: string[]; startX: number; startY: number; origins: Record<string, Position>; moved: boolean; captured: boolean; element: HTMLElement | null; wasSelected: boolean } | null>(null);
+  /** Manual double-click tracking: pointer capture quirks make the native
+   *  `dblclick` event unreliable across browsers, so two quick clean clicks
+   *  (no movement in between) open the icon ourselves. */
+  const lastClickRef = useRef<{ id: string; at: number } | null>(null);
 
   const wallpaper = useMemo(() => getWallpaper(personalization.wallpaperId), [personalization.wallpaperId]);
   const metrics = METRICS[personalization.desktopIconSize];
@@ -78,7 +82,11 @@ export function Desktop() {
     const children = getChildren(nodes, DESKTOP_ID);
     const sorted = sortNodes(children, { key: 'name', direction: 'asc', foldersFirst: false });
     const auto = autoLayout(sorted.length, metrics, size.height);
-    const usedSlots = new Set<string>();
+    const placed: { x: number; y: number }[] = [];
+    const collides = (p: Position) =>
+      placed.some(
+        (q) => Math.abs(p.x - q.x) < metrics.cellW - 6 && Math.abs(p.y - q.y) < metrics.cellH - 6,
+      );
     return sorted.map((node, index) => {
       let position: Position;
       if (personalization.desktopIconLayout === 'free' && typeof node.metadata.iconX === 'number' && typeof node.metadata.iconY === 'number') {
@@ -86,22 +94,32 @@ export function Desktop() {
       } else {
         position = auto[index];
       }
-      const key = `${position.x}:${position.y}`;
-      if (usedSlots.has(key)) position = auto[index] ?? position;
-      usedSlots.add(`${position.x}:${position.y}`);
+      // Clamp inside the work area and resolve overlaps (e.g. nodes added by
+      // migrations on top of user-placed icons) by falling back to the first
+      // free auto slot.
+      position = {
+        x: Math.max(4, Math.min(position.x, Math.max(4, size.width - metrics.cellW))),
+        y: Math.max(4, Math.min(position.y, Math.max(4, size.height - metrics.cellH))),
+      };
+      if (collides(position)) {
+        const fallback = auto.find((slot) => !collides(slot));
+        position = fallback ?? position;
+      }
+      placed.push(position);
       return { node, position };
     });
-  }, [nodes, metrics, size.height, personalization.desktopIconLayout]);
+  }, [nodes, metrics, size.height, size.width, personalization.desktopIconLayout]);
 
 
   /* ---------------- icon dragging ---------------- */
   const beginIconDrag = useCallback(
     (event: React.PointerEvent, node: FSNode) => {
-      if (event.button !== 0) return;
+      if (event.button !== 0 && event.pointerType === 'mouse') return;
       event.stopPropagation();
       const additive = event.ctrlKey || event.metaKey;
       let ids = selection;
-      if (!selection.includes(node.id)) {
+      const wasSelected = selection.includes(node.id);
+      if (!wasSelected) {
         ids = additive ? [...selection, node.id] : [node.id];
         setSelection(ids);
       }
@@ -109,32 +127,47 @@ export function Desktop() {
       icons.forEach(({ node: item, position }) => {
         if (ids.includes(item.id)) origins[item.id] = position;
       });
-      dragRef.current = { ids, startX: event.clientX, startY: event.clientY, origins, moved: false };
-      (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
+      // NOTE: no pointer capture here — capturing on pointer-down swallows
+      // click/dblclick in some browsers. We capture only once a real drag
+      // starts (see onIconPointerMove).
+      dragRef.current = { ids, startX: event.clientX, startY: event.clientY, origins, moved: false, captured: false, element: null, wasSelected };
     },
     [icons, selection, setSelection],
   );
 
-  const onIconPointerMove = useCallback(
-    (event: React.PointerEvent) => {
-      const state = dragRef.current;
-      if (!state) return;
-      const dx = event.clientX - state.startX;
-      const dy = event.clientY - state.startY;
-      if (!state.moved && Math.hypot(dx, dy) < 4) return;
-      state.moved = true;
-      setDragOffset({ x: dx, y: dy });
-    },
-    [],
-  );
+  const onIconPointerMove = useCallback((event: React.PointerEvent) => {
+    const state = dragRef.current;
+    if (!state) return;
+    const dx = event.clientX - state.startX;
+    const dy = event.clientY - state.startY;
+    if (!state.moved && Math.hypot(dx, dy) < 4) return;
+    if (!state.captured) {
+      state.element = event.currentTarget as HTMLElement;
+      try {
+        state.element.setPointerCapture?.(event.pointerId);
+      } catch {
+        state.element = null;
+      }
+      state.captured = true;
+    }
+    state.moved = true;
+    setDragOffset({ x: dx, y: dy });
+  }, []);
 
   const onIconPointerUp = useCallback(
-    (event: React.PointerEvent) => {
+    (event: React.PointerEvent, node: FSNode) => {
       const state = dragRef.current;
-      (event.currentTarget as HTMLElement).releasePointerCapture?.(event.pointerId);
+      if (state?.captured && state.element) {
+        try {
+          state.element.releasePointerCapture?.(event.pointerId);
+        } catch {
+          /* already released */
+        }
+      }
       dragRef.current = null;
       if (!state) return;
-      if (state.moved && dragOffset) {
+      const drift = dragOffset ? Math.hypot(dragOffset.x, dragOffset.y) : 0;
+      if (state.moved && dragOffset && drift >= 7) {
         state.ids.forEach((id) => {
           const origin = state.origins[id];
           if (!origin) return;
@@ -145,8 +178,27 @@ export function Desktop() {
         if (personalization.desktopIconLayout === 'auto') {
           useSettingsStore.getState().setPersonalization({ desktopIconLayout: 'free' });
         }
+        lastClickRef.current = null;
+        setDragOffset(null);
+        return;
       }
       setDragOffset(null);
+      // Clean click (no real movement). Windows-style: the first click
+      // selects, and clicking an already-selected icon opens it — so a
+      // double-click always opens, even with a slow or slightly shaky hand.
+      const now = Date.now();
+      const last = lastClickRef.current;
+      if (state.wasSelected) {
+        lastClickRef.current = null;
+        openNode(node);
+        return;
+      }
+      if (last && last.id === node.id && now - last.at < 500) {
+        lastClickRef.current = null;
+        openNode(node);
+      } else {
+        lastClickRef.current = { id: node.id, at: now };
+      }
     },
     [dragOffset, metrics.cellH, metrics.cellW, personalization.desktopIconLayout, setIconPosition, size.height, size.width],
   );
@@ -388,8 +440,7 @@ export function Desktop() {
               onRenameCancel={() => setRenamingId(null)}
               onPointerDown={(event) => beginIconDrag(event, node)}
               onPointerMove={onIconPointerMove}
-              onPointerUp={onIconPointerUp}
-              onDoubleClick={() => openNode(node)}
+              onPointerUp={(event) => onIconPointerUp(event, node)}
               onContextMenu={(event) => iconMenu(event, node)}
             />
           ))}

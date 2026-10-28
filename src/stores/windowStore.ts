@@ -96,7 +96,7 @@ export const useWindowStore = create<WindowState>()(
       showDesktop: false,
       hiddenByShowDesktop: [],
       altTab: { active: false, index: 0 },
-      pinnedApps: ['explorer', 'chrome', 'word', 'excel', 'accounting', 'settings'],
+      pinnedApps: ['explorer', 'chrome', 'word', 'excel', 'vscode', 'accounting', 'settings'],
       snapPreview: null,
 
       setDesktopSize: (desktop) =>
@@ -336,13 +336,21 @@ export const useWindowStore = create<WindowState>()(
     }),
     {
       name: 'win12-concept.windows',
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         pinnedApps: state.pinnedApps,
         windows: state.windows.map((win) => ({ ...win, minimized: true, closing: false })),
         zTop: state.zTop,
       }),
+      migrate: (persisted, version) => {
+        const stored = (persisted ?? {}) as Partial<WindowState>;
+        if (version < 2) {
+          const pinned = stored.pinnedApps ?? [];
+          if (!pinned.includes('vscode')) stored.pinnedApps = [...pinned, 'vscode'];
+        }
+        return stored;
+      },
       merge: (persisted, current) => {
         const stored = persisted as Partial<WindowState> | undefined;
         if (!stored) return current;

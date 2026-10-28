@@ -2,8 +2,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { db, getKV, initDatabase, persistenceStatus, safeWrite, setKV } from '../services/db';
 import { useFileSystemStore } from '../stores/fileSystemStore';
 import { useSettingsStore, defaultSettings } from '../stores/settingsStore';
-import { DESKTOP_ID, DOCUMENTS_ID, getNode, ROOT_ID, totalUsedBytes } from '../core/FileSystem';
+import { createNode, DESKTOP_ID, DOCUMENTS_ID, getNode, ROOT_ID, totalUsedBytes } from '../core/FileSystem';
 import { estimateSize } from '../core/FileSystem';
+import { buildSeedNodes } from '../data/seed';
 
 function store() {
   return useFileSystemStore.getState();
@@ -199,5 +200,33 @@ describe('file system store persistence', () => {
 
     expect(await store().importAll('not json')).toBe(false);
     expect(await store().importAll('{"files":"nope"}')).toBe(false);
+  });
+});
+
+describe('hydrate self-healing', () => {
+  it('dedupes repeated desktop shortcuts keeping the oldest copy', async () => {
+    const older = createNode({ id: 'dup-a', name: 'Accounting', kind: 'shortcut', parentId: DESKTOP_ID, createdAt: 1000, updatedAt: 1000, metadata: { appId: 'accounting' } });
+    const newer = createNode({ id: 'dup-b', name: 'Accounting', kind: 'shortcut', parentId: DESKTOP_ID, createdAt: 2000, updatedAt: 2000, metadata: { appId: 'accounting' } });
+    await db.files.bulkPut([older, newer]);
+    await setKV('fs.seeded.v1', true);
+    useFileSystemStore.setState({ nodes: {}, hydrated: false });
+    await store().hydrate();
+    const duplicates = Object.values(store().nodes).filter((node) => node.parentId === DESKTOP_ID && node.name === 'Accounting');
+    expect(duplicates).toHaveLength(1);
+    expect(duplicates[0].id).toBe('dup-a');
+    expect(store().nodes['dup-b']).toBeUndefined();
+    expect(await db.files.get('dup-b')).toBeUndefined();
+  });
+
+  it('does not duplicate existing content when the seed flag is missing', async () => {
+    const seed = buildSeedNodes();
+    await db.files.bulkPut(Object.values(seed));
+    await db.kv.clear(); // lose the seed flag but keep the rows
+    useFileSystemStore.setState({ nodes: {}, hydrated: false });
+    await store().hydrate();
+    const desktop = Object.values(store().nodes).filter((node) => node.parentId === DESKTOP_ID && !node.deleted);
+    const names = desktop.map((node) => node.name);
+    expect(new Set(names).size).toBe(names.length);
+    expect(await getKV<boolean>('fs.seeded.v1')).toBe(true);
   });
 });

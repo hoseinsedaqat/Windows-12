@@ -119,7 +119,7 @@ export interface AppDefinition {
   /** Show in Start "All apps" and (optionally) pin to taskbar/desktop. */
   listed?: boolean;
   /** Category used by the Start menu grouping. */
-  category?: 'system' | 'productivity' | 'media' | 'web' | 'utilities' | 'business';
+  category?: 'system' | 'productivity' | 'media' | 'web' | 'utilities' | 'business' | 'development' | 'games';
   /** Accent colour used by tiles and the taskbar indicator. */
   accent?: string;
   /** File kinds this app can open (used by "Open with"). */
