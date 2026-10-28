@@ -123,6 +123,7 @@ export const en = {
   'start.shutdown': 'Shut down',
   'start.power': 'Power',
   'start.searchPlaceholder': 'Search apps, settings and files',
+  'search.web': 'Search the web for "{query}"',
   'start.noResults': 'No results found',
   'start.apps': 'Apps',
   'start.files': 'Files',

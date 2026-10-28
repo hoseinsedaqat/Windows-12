@@ -28,6 +28,7 @@ import { useShellStore } from '../../stores/shellStore';
 import { useNotificationStore } from '../../stores/notificationStore';
 import { AppIcon, ConceptLogo } from '../icons/AppIcons';
 import { conditionIcon } from '../panels/WeatherFlyout';
+import { SearchPill } from '../panels/SearchPanel';
 import { getWeather } from '../../services/weather';
 import { useT } from '../../i18n';
 import { useClock } from '../../hooks/useAppearance';
@@ -63,6 +64,10 @@ export function Taskbar() {
   const battery = useSystemStore((state) => state.battery);
   const panel = useShellStore((state) => state.panel);
   const setPanel = useShellStore((state) => state.setPanel);
+  const searchOpen = useShellStore((state) => state.searchOpen);
+  const searchSource = useShellStore((state) => state.searchSource);
+  const openSearch = useShellStore((state) => state.openSearch);
+  const closeSearch = useShellStore((state) => state.closeSearch);
   const openContextMenu = useShellStore((state) => state.openContextMenu);
   const notifications = useNotificationStore((state) => state.notifications);
 
@@ -241,7 +246,11 @@ export function Taskbar() {
       </div>
 
       {/* Centred cluster: start, search box, task view, apps */}
-      <div className={`flex items-center gap-1 ${centered ? 'flex-none' : `flex-1 ${isRTL ? 'justify-end' : 'justify-start'}`}`}>
+      <div
+        className={`scrollbar-none flex min-w-0 max-w-[calc(100vw-150px)] items-center gap-1 overflow-x-auto md:max-w-[calc(100vw-330px)] ${
+          centered ? 'flex-none' : `flex-1 ${isRTL ? 'justify-end' : 'justify-start'}`
+        }`}
+      >
         <TaskbarButton
           label={t('taskbar.start')}
           active={panel === 'start'}
@@ -253,24 +262,13 @@ export function Taskbar() {
           <ConceptLogo size={iconSize - 6} />
         </TaskbarButton>
 
-        <button
-          type="button"
-          onClick={() => setPanel(panel === 'search' ? null : 'search')}
-          className={`mx-0.5 hidden h-9 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 transition-colors hover:bg-[var(--hover)] sm:flex ${
-            panel === 'search' ? 'ring-1 ring-[var(--accent)]' : ''
-          }`}
-          style={{ width: 210 }}
-          aria-label={t('taskbar.search')}
+        <SearchPill />
+        <TaskbarButton
+          label={t('taskbar.search')}
+          active={searchOpen && searchSource === 'button'}
+          onClick={() => (searchOpen && searchSource === 'button' ? closeSearch() : openSearch('button'))}
+          className="sm:hidden"
         >
-          <Search size={14} className="opacity-70" />
-          <span className="text-[12px] opacity-70">{t('taskbar.search')}</span>
-          <span
-            className="ml-auto h-5 w-5 rounded-full ring-1 ring-white/30"
-            style={{ background: 'conic-gradient(from 210deg, #60a5fa, #a78bfa, #f472b6, #60a5fa)' }}
-            aria-hidden
-          />
-        </button>
-        <TaskbarButton label={t('taskbar.search')} active={panel === 'search'} onClick={() => setPanel(panel === 'search' ? null : 'search')} className="sm:hidden">
           <Search size={iconSize - 12} />
         </TaskbarButton>
 

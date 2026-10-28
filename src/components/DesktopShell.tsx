@@ -3,7 +3,7 @@ import { Desktop } from './desktop/Desktop';
 import { WindowLayer } from './window/WindowLayer';
 import { Taskbar } from './taskbar/Taskbar';
 import { StartMenu } from './start/StartMenu';
-import { SearchPanel } from './panels/SearchPanel';
+import { SearchFlyout } from './panels/SearchPanel';
 import { QuickSettings } from './panels/QuickSettings';
 import { NotificationCenter, Toasts } from './panels/NotificationCenter';
 import { TaskView, AltTabOverlay } from './panels/TaskView';
@@ -62,7 +62,7 @@ export function DesktopShell() {
       <WindowLayer />
       <Taskbar />
       <StartMenu />
-      <SearchPanel />
+      <SearchFlyout />
       <QuickSettings />
       <NotificationCenter />
       <CalendarFlyout />

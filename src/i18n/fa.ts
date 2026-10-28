@@ -125,6 +125,7 @@ export const fa: TranslationDictionary = {
   'start.shutdown': 'خاموش کردن',
   'start.power': 'خاموش/روشن',
   'start.searchPlaceholder': 'جست‌وجوی برنامه، تنظیمات و فایل',
+  'search.web': 'جست‌وجوی وب برای «{query}»',
   'start.noResults': 'نتیجه‌ای یافت نشد',
   'start.apps': 'برنامه‌ها',
   'start.files': 'فایل‌ها',

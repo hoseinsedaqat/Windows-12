@@ -531,3 +531,10 @@ html.no-animations *::after {
 .calc-key.equals:hover {
   filter: brightness(1.08);
 }
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
