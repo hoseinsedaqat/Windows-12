@@ -74,15 +74,18 @@ async function snap(appName, edgeX) {
   const bar = page.locator(`section[aria-label="${appName} window"] header.titlebar`);
   const box = await bar.boundingBox();
   if (!box) throw new Error(`titlebar not found for ${appName}`);
-  await page.mouse.move(box.x + box.width / 2, box.y + 10);
+  const cx = box.x + box.width / 2;
+  const cy = box.y + 10;
+  await page.mouse.move(cx, cy);
   await page.mouse.down();
-  await page.mouse.move(edgeX, 450, { steps: 14 });
+  await page.mouse.move(cx + 5, cy + 4, { steps: 3 }); // engage lazy pointer capture
+  await page.mouse.move(edgeX, 450, { steps: 16 });
   await page.waitForTimeout(350);
   await page.mouse.up();
-  await page.waitForTimeout(700);
+  await page.waitForTimeout(800);
 }
+await snap('Word', 1437); // front window first, then the exposed one
 await snap('Excel', 3);
-await snap('Word', 1437);
 await page.waitForTimeout(600);
 await page.screenshot({ path: `${OUT}/desktop.png` });
 console.log('[shoot] hero shot taken');
