@@ -65,12 +65,27 @@ async function launch(query) {
   await page.waitForTimeout(1600); // lazy app chunk + window open animation
 }
 
-// 4) Two real app windows for the hero shot.
+// 4) Two real app windows, snapped left/right so both stay readable.
 await launch('excel');
 await launch('word');
-await page.mouse.click(720, 860); // blur search, keep windows
-await page.waitForTimeout(900);
+await page.mouse.click(1200, 780); // empty desktop: blur search, open nothing
+
+async function snap(appName, edgeX) {
+  const bar = page.locator(`section[aria-label="${appName} window"] header.titlebar`);
+  const box = await bar.boundingBox();
+  if (!box) throw new Error(`titlebar not found for ${appName}`);
+  await page.mouse.move(box.x + box.width / 2, box.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(edgeX, 450, { steps: 14 });
+  await page.waitForTimeout(350);
+  await page.mouse.up();
+  await page.waitForTimeout(700);
+}
+await snap('Excel', 3);
+await snap('Word', 1437);
+await page.waitForTimeout(600);
 await page.screenshot({ path: `${OUT}/desktop.png` });
+console.log('[shoot] hero shot taken');
 
 // 5) Start menu open over the desktop.
 await page.click('button[aria-label="Start"]');
@@ -81,7 +96,7 @@ await page.waitForTimeout(500);
 
 // 6) A playable game (Minesweeper) for the gallery.
 await launch('minesweeper');
-await page.mouse.click(720, 860);
+await page.mouse.click(1200, 780);
 await page.waitForTimeout(700);
 await page.screenshot({ path: `${OUT}/games.png` });
 
