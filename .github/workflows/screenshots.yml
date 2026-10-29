@@ -9,7 +9,7 @@ on:
       - '.github/workflows/screenshots.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   shoot:
@@ -33,17 +33,25 @@ jobs:
 
       - name: Serve build
         run: |
-          nohup npm run preview -- --host 0.0.0.0 --port 4173 > /tmp/preview.log 2>&1 &
+          nohup npm run preview > /tmp/preview.log 2>&1 &
           for i in $(seq 1 30); do
             if curl -sf http://localhost:4173/ > /dev/null; then echo "preview up"; break; fi
             sleep 1
           done
 
       - name: Drive the UI and take screenshots
-        run: node scripts/screenshot.mjs
+        run: node scripts/screenshot.mjs 2>&1 | tee /tmp/shoot.log
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: screenshots
-          path: docs/screenshots/raw/*.png
-          retention-days: 7
+      - name: Commit screenshots (or diagnostics) back to the branch
+        if: always()
+        run: |
+          cp /tmp/preview.log /tmp/shoot.log docs/screenshots/ 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/screenshots
+          if git diff --cached --quiet; then
+            echo "nothing to commit"
+          else
+            git commit -m "chore(screenshots): refresh product shots from CI run ${{ github.run_id }}"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
