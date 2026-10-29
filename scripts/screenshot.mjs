@@ -48,7 +48,7 @@ try {
 }
 await page.waitForTimeout(600);
 await page.fill('input[aria-label="Password"]', '1234');
-await page.click('button:has-text("Sign in")');
+await page.press('input[aria-label="Password"]', 'Enter'); // submit button is icon-only
 console.log('[shoot] signed in');
 
 // 3) Desktop + taskbar.
