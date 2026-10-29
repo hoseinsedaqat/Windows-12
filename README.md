@@ -1,10 +1,11 @@
 <div align="center">
 
-# 🪟 Windows 12 Concept — Web Desktop Simulator
+# 🪟 Windows 12 Concept
 
-**A full interactive desktop operating-system concept that runs entirely in your browser.**
-Boot it, sign in, drag windows, write documents, build spreadsheets, play games — everything
-below is real, working code, not a video or a mock-up.
+### A full desktop operating-system concept that runs entirely in your browser
+
+Boot it. Sign in. Drag windows. Write documents. Build spreadsheets. Play games.
+Everything you see below is **real, working code** — not a video, not a mock-up.
 
 [![CI](https://github.com/hoseinsedaqat/Windows-12/actions/workflows/ci.yml/badge.svg)](https://github.com/hoseinsedaqat/Windows-12/actions/workflows/ci.yml)
 [![Live demo](https://img.shields.io/badge/live%20demo-GitHub%20Pages-0a7cff?logo=githubpages&logoColor=white)](https://hoseinsedaqat.github.io/Windows-12/)
@@ -13,72 +14,86 @@ below is real, working code, not a video or a mock-up.
 [![Vite](https://img.shields.io/badge/Vite-5.4-646cff?logo=vite&logoColor=white)](https://vitejs.dev)
 [![Tailwind](https://img.shields.io/badge/Tailwind-3.4-38bdf8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 [![Zustand](https://img.shields.io/badge/Zustand-5-7c3aed)](https://zustand-demo.pmnd.rs)
-[![Tests](https://img.shields.io/badge/tests-168%20passing-brightgreen?logo=vitest&logoColor=white)](#tests)
+[![Tests](https://img.shields.io/badge/tests-169%20passing-brightgreen)](#-tests)
 
-[Live demo](https://hoseinsedaqat.github.io/Windows-12/) · [Features](#what-actually-works) · [Apps](#applications-23) · [Architecture](#architecture) · [Tests](#tests)
+**[▶ Try the live demo](https://hoseinsedaqat.github.io/Windows-12/)** — password `1234`
 
-![Windows 12 Concept — desktop with live app windows](docs/screenshots/desktop-windows.png)
-*The simulator running in a real browser: desktop, taskbar and two live app windows
-(Excel workbook in front, Accounting behind), each with its own frame, snap and focus.*
+![Windows 12 Concept — Excel and Word snapped side by side, with live formulas and autosave](docs/screenshots/hero-desktop.png)
+
+*Real run of the simulator: Excel (left) with a live `=SUM()` formula and autosave badge,
+Word (right) with a typed document — snapped side by side by dragging windows to the
+screen edges, exactly like Windows 11.*
 
 </div>
 
 > **An unofficial, fan-made concept.** This project is **not** Windows, **not** a Microsoft
-> product, and it is not affiliated with or endorsed by Microsoft. It is a virtual desktop
-> that runs entirely inside your browser: every "system" feature (boot, lock screen,
-> battery, Wi‑Fi, Bluetooth, Windows Update, security status, Task Manager numbers) is
-> **simulated** and clearly labelled as such in the UI. It never claims to control your
-> real device.
+> product, and it is not affiliated with or endorsed by Microsoft. Every "system" surface
+> (boot, lock screen, battery, Wi‑Fi, Bluetooth, Windows Update, security status, Task
+> Manager metrics) is **simulated** and labelled as such in the UI. It never claims to
+> control your real device.
 
 ---
 
-## ⚡ Try it in 30 seconds
+## 🖼 Gallery
+
+| Start menu & shell | Playable games |
+| :---: | :---: |
+| ![Start menu with pinned apps, recommendations and system folders](docs/screenshots/gallery-start.png) | ![Minesweeper running inside the simulator](docs/screenshots/gallery-games.png) |
+| Centred Start menu with pinned apps, Recommended files and system folders — over the live desktop | Minesweeper in a real window: flags, chording, timer and persisted best times |
+
+> 📸 **No hand-made mockups:** every screenshot in this README is captured by CI
+> ([`.github/workflows/screenshots.yml`](.github/workflows/screenshots.yml)) driving the
+> real UI with Playwright — boot, sign-in, search-launched apps, typed content, snapped
+> windows — straight from a production build.
+
+---
+
+## ⚡ Quick start
 
 ```bash
 npm install
 npm run dev        # → http://localhost:5173
 ```
 
-Or skip the install: the **[live demo](https://hoseinsedaqat.github.io/Windows-12/)** deploys
-from the `test` branch on every merge. First boot shows logo → loading → welcome → lock
-screen; the demo password is **`1234`** (change it in *Settings → Accounts → Sign-in
-options*, or enable auto sign-in).
-
 | Script | What it does |
 | --- | --- |
 | `npm run dev` | Vite dev server on `0.0.0.0:5173` |
-| `npm run build` | `tsc -b` type-check + production bundle in `dist/` |
+| `npm run build` | `tsc -b` strict type-check + production bundle in `dist/` |
 | `npm run typecheck` | Type-check only (strict mode) |
-| `npm test` | 168 unit + integration tests (Vitest, jsdom, fake-indexeddb) |
+| `npm test` | 169 unit + integration tests (Vitest, jsdom, fake-indexeddb) |
 | `npm run preview` | Serve the production bundle on `0.0.0.0:4173` |
+
+First run: logo → loading → welcome → lock screen. Demo password **`1234`**
+(change it in *Settings → Accounts → Sign-in options*, or enable auto sign-in).
 
 ---
 
 ## 🧭 What actually works
 
-### System
+### Shell & system
 - **Boot / lock / sign-in** — animated boot (skippable), lock screen with live clock and
   full date, password show/hide, wrong-password error, power + accessibility buttons.
   Restart / Shut down / Lock / Sign out all run the real state machine.
 - **Desktop** — wallpaper switching (8 generated wallpapers + your own uploads), icon
-  drag, marquee multi-select, click-to-select / click-again-to-open, custom context
-  menus, icon sizes, sort, auto-arrange, new folder / shortcut, inline rename (F2).
+  drag, marquee multi-select, click-to-select / click-again-to-open, custom context menus,
+  icon sizes, sort, auto-arrange, new folder / shortcut, inline rename (F2).
 - **Taskbar (Windows 11 style)** — centred Start + inline search box + Task View + pins
   with running indicators and jump lists, weather chip with a 5-day flyout (simulated and
-  labelled), tray with hidden-icons flyout (Bluetooth / night light / OneDrive /
-  security), network-volume-battery cluster, clock, bell, show-desktop sliver, auto-hide,
-  position, alignment and icon-size options.
+  labelled), tray with hidden-icons flyout, network-volume-battery cluster, clock, bell,
+  show-desktop sliver, auto-hide, position, alignment and icon-size options. Stays usable
+  down to small viewports (scrolling centre cluster, compact clock).
 - **Inline search** — the taskbar search box *is* the input: type and a compact flyout
-  lists matching apps, files and Settings pages (arrow keys + Enter, Esc or click-away to
-  dismiss), plus a "search the web" fallback. On small screens the same experience opens
-  from the search button with its own input and recent files.
+  lists matching apps, files and Settings pages (↑↓ + Enter, Esc or click-away to
+  dismiss), plus a "search the web" fallback. Small screens and `Ctrl+S` get the same
+  experience as a compact flyout with its own input and recent files.
 - **Window manager** — move, edge-resize (8 handles), minimize, maximize/restore, snap
   left/right/corners with snap-assist preview, z-order focus, Alt+Tab cycling, per-app
-  multi-window or singleton behaviour, window state preserved across reloads, title-bar
-  context menu, double-click title to maximize, always clamped so a window can't be lost.
-- **Responsive shell** — windows re-clamp on resize/orientation change, panels and
-  flyouts size themselves with `min(…)` against the viewport, the taskbar cluster scrolls
-  instead of overflowing on narrow screens, and the whole UI mirrors correctly in RTL.
+  multi-window or singleton behaviour, state preserved across reloads, title-bar context
+  menu, double-click title to maximize, always clamped so a window can't be lost.
+- **Responsive & input-safe** — windows re-clamp on resize/orientation change, panels size
+  themselves with `min(…)` against the viewport, RTL mirrors everything, and the window
+  layer is pointer-event audited with regression tests so chrome and app content always
+  stay clickable.
 - **Settings (38 pages)** — System (display, sound, notifications, focus, power, storage,
   multitasking, about), Bluetooth & devices, Network & internet, Personalization
   (background, colors, themes, lock screen, Start, taskbar, fonts), Apps, Accounts,
@@ -142,6 +157,10 @@ src/
 └── tests/           Vitest suites (file system, formulas, windows, storage, settings,
                      accounting, documents, shell integration, power/session, games,
                      web search, weather, desktop interaction, window chrome, search)
+scripts/
+├── screenshot.mjs   Playwright driver that captures the README screenshots from a
+│                    production build (boot → sign-in → launch → type → snap → shoot)
+└── compose_shots.py Pillow composer: rounded corners, soft shadow, gradient backdrop
 ```
 
 Design rules the code follows:
@@ -158,6 +177,9 @@ Design rules the code follows:
 - **Error boundaries.** A crashing app shows a recovery card instead of a white screen.
 - **No click-swallowing overlays.** Window layers and panels are pointer-event audited and
   covered by regression tests, so chrome and app content always stay interactive.
+- **Self-healing storage.** Corrupted or duplicated legacy seed data is repaired on hydrate
+  (identity merge + dedupe), and storage failures degrade to in-memory with a visible
+  warning instead of throwing.
 
 ### Persistence
 
@@ -165,10 +187,6 @@ Design rules the code follows:
 | --- | --- |
 | Settings, system/account, window layout, notifications, quick settings, browser state | `localStorage` (`win12-concept.*`) |
 | Files, accounting ledger, calendar events, key/value side-app state | IndexedDB `windows12-concept` (Dexie) |
-
-Storage failures are detected (`persistenceStatus`, `safeWrite`) and degrade to in-memory
-with a visible warning instead of throwing. Corrupted or duplicated legacy seed data is
-self-healed on hydrate (identity merge + dedupe + repair).
 
 ### Security & honesty
 
@@ -205,7 +223,7 @@ self-healed on hydrate (identity merge + dedupe + repair).
 npm test
 ```
 
-168 tests across 15 suites — every headline feature has at least one suite:
+169 tests across 16 suites — every headline feature has at least one suite:
 
 - `fileSystem.test.ts` — create/rename/move/copy/duplicate, soft delete → Recycle Bin →
   restore → purge, clipboard semantics, paths, search, sorting, sizes, seed integrity.
@@ -218,6 +236,8 @@ npm test
 - `windowChrome.test.tsx` — titlebar close/minimize actually close/minimize, frames keep
   `pointer-events: auto`, no full-screen overlay wraps windows, drag starts only after
   real movement (so button clicks survive).
+- `openFiles.test.tsx` — opens every seeded file (docs, sheets, slides, text,
+  notes, images, shortcuts) in its app and asserts no error boundary appears.
 - `search.test.tsx` — inline taskbar search: empty query shows nothing, compact flyout on
   typing, web fallback row, Enter opens the active hit, Esc / click-away dismiss, compact
   recents mode for small screens.
@@ -258,12 +278,13 @@ npm test
 - Multi-user accounts with per-user file trees.
 - Custom snap-layout grid presets in the titlebar flyout.
 - Virtual desktops behind Task View.
+- PWA install + offline shell.
 
 ---
 
 <div align="center">
 
-Built as a design/engineering concept — enjoy exploring it, and remember:
-**it's a simulator, not an operating system.**
+**Built as a design/engineering concept — enjoy exploring it.**
+And remember: it's a simulator, not an operating system. 🪽
 
 </div>

@@ -1,0 +1,21 @@
+[shoot] launching chromium
+[shoot] goto http://localhost:4173
+[console:warning] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio
+[console:warning] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio
+[console:warning] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio
+[console:warning] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio
+[console:warning] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio
+[shoot] boot skipped; body text: 12:59 PM |  | Thursday, October 29, 2026 |  | Click anywhere or press a key |  | Fan-made browser simulation — not a real operating system.
+[shoot] signed in
+[shoot] desktop ready
+[shoot] start menu shot taken
+[shoot] hero shot taken
+[shoot] games shot taken
+[open-check] Welcome: ok
+[open-check] Quarterly: ok
+[open-check] Product launch: ok
+[open-check] Meeting: ok
+[open-check] Ideas: ok
+[open-check] hello: ok
+[open-check] Lakeside: ok
+[shoot] screenshots written to docs/screenshots/raw
