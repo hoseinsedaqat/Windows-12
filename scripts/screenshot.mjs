@@ -131,5 +131,28 @@ await page.waitForTimeout(700);
 await page.screenshot({ path: `${OUT}/games.png` });
 console.log('[shoot] games shot taken');
 
+// 7) Open every major seeded file type in a REAL browser and scan for crashes.
+const crashes = [];
+async function openFile(query) {
+  await page.fill(pill, query);
+  await page.waitForTimeout(500);
+  await page.press(pill, 'Enter');
+  await page.waitForTimeout(1600);
+  const bad = (await page.evaluate(() => document.body.innerText)).includes('Something went wrong');
+  console.log(`[open-check] ${query}: ${bad ? 'CRASH' : 'ok'}`);
+  if (bad) crashes.push(query);
+}
+await openFile('Welcome');
+await openFile('Quarterly');
+await openFile('Product launch');
+await openFile('Meeting');
+await openFile('Ideas');
+await openFile('hello');
+await openFile('Lakeside');
+if (crashes.length) {
+  console.error('[open-check] crashes:', crashes.join(', '));
+  process.exitCode = 1;
+}
+
 await browser.close();
 console.log('[shoot] screenshots written to', OUT);
