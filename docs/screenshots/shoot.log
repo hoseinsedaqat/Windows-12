@@ -1,0 +1,19 @@
+[shoot] launching chromium
+[shoot] goto http://localhost:4173
+[shoot] boot skipped
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+page.waitForSelector: Timeout 45000ms exceeded.
+Call log:
+  - waiting for locator('input[aria-label="Password"]') to be visible
+
+    at /home/runner/work/Windows-12/Windows-12/scripts/screenshot.mjs:33:12 {
+  log: [
+    `  - waiting for locator('input[aria-label="Password"]') to be visible`
+  ],
+  name: 'TimeoutError'
+}
+
+Node.js v20.20.2
