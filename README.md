@@ -14,7 +14,7 @@ Everything you see below is **real, working code** — not a video, not a mock-u
 [![Vite](https://img.shields.io/badge/Vite-5.4-646cff?logo=vite&logoColor=white)](https://vitejs.dev)
 [![Tailwind](https://img.shields.io/badge/Tailwind-3.4-38bdf8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 [![Zustand](https://img.shields.io/badge/Zustand-5-7c3aed)](https://zustand-demo.pmnd.rs)
-[![Tests](https://img.shields.io/badge/tests-168%20passing-brightgreen)](#-tests)
+[![Tests](https://img.shields.io/badge/tests-169%20passing-brightgreen)](#-tests)
 
 **[▶ Try the live demo](https://hoseinsedaqat.github.io/Windows-12/)** — password `1234`
 
@@ -60,7 +60,7 @@ npm run dev        # → http://localhost:5173
 | `npm run dev` | Vite dev server on `0.0.0.0:5173` |
 | `npm run build` | `tsc -b` strict type-check + production bundle in `dist/` |
 | `npm run typecheck` | Type-check only (strict mode) |
-| `npm test` | 168 unit + integration tests (Vitest, jsdom, fake-indexeddb) |
+| `npm test` | 169 unit + integration tests (Vitest, jsdom, fake-indexeddb) |
 | `npm run preview` | Serve the production bundle on `0.0.0.0:4173` |
 
 First run: logo → loading → welcome → lock screen. Demo password **`1234`**
@@ -223,7 +223,7 @@ Design rules the code follows:
 npm test
 ```
 
-168 tests across 15 suites — every headline feature has at least one suite:
+169 tests across 16 suites — every headline feature has at least one suite:
 
 - `fileSystem.test.ts` — create/rename/move/copy/duplicate, soft delete → Recycle Bin →
   restore → purge, clipboard semantics, paths, search, sorting, sizes, seed integrity.
@@ -236,6 +236,8 @@ npm test
 - `windowChrome.test.tsx` — titlebar close/minimize actually close/minimize, frames keep
   `pointer-events: auto`, no full-screen overlay wraps windows, drag starts only after
   real movement (so button clicks survive).
+- `openFiles.test.tsx` — opens every seeded file (docs, sheets, slides, text,
+  notes, images, shortcuts) in its app and asserts no error boundary appears.
 - `search.test.tsx` — inline taskbar search: empty query shows nothing, compact flyout on
   typing, web fallback row, Enter opens the active hit, Esc / click-away dismiss, compact
   recents mode for small screens.
