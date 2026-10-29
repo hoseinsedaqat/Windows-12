@@ -103,8 +103,8 @@ const cell = async (x, y, text) => {
   await page.keyboard.press('Enter');
   await page.waitForTimeout(160);
 };
-await cell(92, 197, 'Quarter');
-await cell(180, 197, 'Revenue');
+await cell(92, 207, 'Quarter');
+await cell(180, 207, 'Revenue');
 await cell(92, 217, 'Q1');
 await cell(180, 217, '12500');
 await cell(92, 237, 'Q2');
