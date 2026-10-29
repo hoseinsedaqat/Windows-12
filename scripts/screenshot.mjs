@@ -65,7 +65,15 @@ async function launch(query) {
   await page.waitForTimeout(1600); // lazy app chunk + window open animation
 }
 
-// 4) Two real app windows, snapped left/right so both stay readable.
+// 4) Start menu over the pristine desktop (wallpaper + icons visible).
+await page.click('button[aria-label="Start"]');
+await page.waitForTimeout(1000);
+await page.screenshot({ path: `${OUT}/start-menu.png` });
+await page.keyboard.press('Escape');
+await page.waitForTimeout(500);
+console.log('[shoot] start menu shot taken');
+
+// 5) Two real app windows with real content, snapped left/right.
 await launch('excel');
 await launch('word');
 await page.mouse.click(1200, 780); // empty desktop: blur search, open nothing
@@ -86,22 +94,43 @@ async function snap(appName, edgeX) {
 }
 await snap('Word', 1437); // front window first, then the exposed one
 await snap('Excel', 3);
-await page.waitForTimeout(600);
+
+// type real content: Excel grid (left half) then Word page (right half)
+await page.mouse.click(300, 420);
+await page.keyboard.type('Quarter');
+await page.keyboard.press('Tab');
+await page.keyboard.type('Revenue');
+await page.keyboard.press('Enter');
+await page.keyboard.type('Q1');
+await page.keyboard.press('Tab');
+await page.keyboard.type('12500');
+await page.keyboard.press('Enter');
+await page.keyboard.type('Q2');
+await page.keyboard.press('Tab');
+await page.keyboard.type('18240');
+await page.keyboard.press('Enter');
+await page.keyboard.type('Total');
+await page.keyboard.press('Tab');
+await page.keyboard.type('=SUM(B2:B3)');
+await page.keyboard.press('Enter');
+await page.waitForTimeout(500);
+
+await page.mouse.click(1080, 520);
+await page.keyboard.type('Windows 12 Concept');
+await page.keyboard.press('Enter');
+await page.keyboard.type('A full desktop that lives inside your browser: windows, files,');
+await page.keyboard.press('Enter');
+await page.keyboard.type('Office documents, games and more - all simulated, all interactive.');
+await page.waitForTimeout(700);
 await page.screenshot({ path: `${OUT}/desktop.png` });
 console.log('[shoot] hero shot taken');
-
-// 5) Start menu open over the desktop.
-await page.click('button[aria-label="Start"]');
-await page.waitForTimeout(1000);
-await page.screenshot({ path: `${OUT}/start-menu.png` });
-await page.keyboard.press('Escape');
-await page.waitForTimeout(500);
 
 // 6) A playable game (Minesweeper) for the gallery.
 await launch('minesweeper');
 await page.mouse.click(1200, 780);
 await page.waitForTimeout(700);
 await page.screenshot({ path: `${OUT}/games.png` });
+console.log('[shoot] games shot taken');
 
 await browser.close();
 console.log('[shoot] screenshots written to', OUT);
