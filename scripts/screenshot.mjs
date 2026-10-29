@@ -20,17 +20,27 @@ process.on('unhandledRejection', (error) => {
 const browser = await chromium.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
 page.on('pageerror', (error) => console.warn('[pageerror]', error.message));
+page.on('console', (message) => console.log('[console:' + message.type() + ']', message.text().slice(0, 300)));
 
 console.log('[shoot] goto', BASE);
 await page.goto(BASE, { waitUntil: 'domcontentloaded' });
 
 // 1) Boot animation — skippable with a click.
 await page.waitForTimeout(1400);
+await page.screenshot({ path: `${OUT}/phase-1-boot.png` });
 await page.mouse.click(720, 450);
-console.log('[shoot] boot skipped');
+await page.waitForTimeout(1500);
+await page.screenshot({ path: `${OUT}/phase-2-after-skip.png` });
+console.log('[shoot] boot skipped; body text:', (await page.evaluate(() => document.body.innerText)).slice(0, 200).replace(/\n/g, ' | '));
 
 // 2) Lock screen — demo password 1234.
-await page.waitForSelector('input[aria-label="Password"]', { timeout: 45000 });
+try {
+  await page.waitForSelector('input[aria-label="Password"]', { timeout: 30000 });
+} catch (error) {
+  await page.screenshot({ path: `${OUT}/phase-3-lock-timeout.png` });
+  console.error('[shoot] lock timeout; body text:', (await page.evaluate(() => document.body.innerText)).slice(0, 400).replace(/\n/g, ' | '));
+  throw error;
+}
 await page.waitForTimeout(600);
 await page.fill('input[aria-label="Password"]', '1234');
 await page.click('button:has-text("Sign in")');
