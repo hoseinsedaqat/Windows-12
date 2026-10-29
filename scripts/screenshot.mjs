@@ -96,26 +96,23 @@ await snap('Word', 1437); // front window first, then the exposed one
 await snap('Excel', 3);
 
 // type real content: Excel grid (left half) then Word page (right half)
-await page.mouse.click(300, 420);
-await page.keyboard.type('Quarter');
-await page.keyboard.press('Tab');
-await page.keyboard.type('Revenue');
-await page.keyboard.press('Enter');
-await page.keyboard.type('Q1');
-await page.keyboard.press('Tab');
-await page.keyboard.type('12500');
-await page.keyboard.press('Enter');
-await page.keyboard.type('Q2');
-await page.keyboard.press('Tab');
-await page.keyboard.type('18240');
-await page.keyboard.press('Enter');
-await page.keyboard.type('Total');
-await page.keyboard.press('Tab');
-await page.keyboard.type('=SUM(B2:B3)');
-await page.keyboard.press('Enter');
-await page.waitForTimeout(500);
+const cell = async (x, y, text) => {
+  await page.mouse.click(x, y);
+  await page.keyboard.type(text);
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(120);
+};
+await cell(92, 238, 'Quarter');
+await cell(180, 238, 'Revenue');
+await cell(92, 258, 'Q1');
+await cell(180, 258, '12500');
+await cell(92, 278, 'Q2');
+await cell(180, 278, '18240');
+await cell(92, 298, 'Total');
+await cell(180, 298, '=SUM(B2:B3)');
+await page.waitForTimeout(400);
 
-await page.mouse.click(1080, 520);
+await page.locator('section[aria-label="Word window"] [contenteditable]').click();
 await page.keyboard.type('Windows 12 Concept');
 await page.keyboard.press('Enter');
 await page.keyboard.type('A full desktop that lives inside your browser: windows, files,');
