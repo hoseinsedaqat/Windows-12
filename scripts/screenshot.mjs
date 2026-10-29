@@ -33,7 +33,12 @@ await page.waitForTimeout(1500);
 await page.screenshot({ path: `${OUT}/phase-2-after-skip.png` });
 console.log('[shoot] boot skipped; body text:', (await page.evaluate(() => document.body.innerText)).slice(0, 200).replace(/\n/g, ' | '));
 
-// 2) Lock screen — demo password 1234.
+// 2) Lock screen — two-step: "click anywhere" first, then the password form.
+for (let i = 0; i < 6; i += 1) {
+  if (await page.$('input[aria-label="Password"]')) break;
+  await page.mouse.click(720, 450);
+  await page.waitForTimeout(900);
+}
 try {
   await page.waitForSelector('input[aria-label="Password"]', { timeout: 30000 });
 } catch (error) {
