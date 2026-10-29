@@ -5,18 +5,7 @@
 [console:warning] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio
 [console:warning] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio
 [console:warning] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio
-[shoot] boot skipped; body text: 07:42 AM |  | Thursday, October 29, 2026 |  | Click anywhere or press a key |  | Fan-made browser simulation — not a real operating system.
-node:internal/modules/run_main:123
-    triggerUncaughtException(
-    ^
-
-page.click: Timeout 30000ms exceeded.
-Call log:
-  - waiting for locator('button:has-text("Sign in")')
-
-    at /home/runner/work/Windows-12/Windows-12/scripts/screenshot.mjs:51:12 {
-  log: [ `  - waiting for locator('button:has-text("Sign in")')` ],
-  name: 'TimeoutError'
-}
-
-Node.js v20.20.2
+[shoot] boot skipped; body text: 07:44 AM |  | Thursday, October 29, 2026 |  | Click anywhere or press a key |  | Fan-made browser simulation — not a real operating system.
+[shoot] signed in
+[shoot] desktop ready
+[shoot] screenshots written to docs/screenshots/raw
