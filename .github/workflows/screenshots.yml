@@ -2,6 +2,11 @@ name: Screenshots
 
 on:
   workflow_dispatch:
+  push:
+    branches: ['arena/**']
+    paths:
+      - 'scripts/screenshot.mjs'
+      - '.github/workflows/screenshots.yml'
 
 permissions:
   contents: read
