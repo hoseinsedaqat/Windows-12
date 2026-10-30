@@ -692,6 +692,47 @@ const FUNCTIONS: Record<string, Fn> = {
     }
     return fallback;
   },
+  XLOOKUP: (args, nodes, ctx) => {
+    const needle = args[0]?.[0];
+    const lookupNode = nodes[1];
+    const returnNode = nodes[2];
+    if (needle === undefined || lookupNode?.type !== 'range' || returnNode?.type !== 'range') return makeError('#VALUE!');
+    const lookupStart = keyToRef(lookupNode.start);
+    const lookupEnd = keyToRef(lookupNode.end);
+    const returnStart = keyToRef(returnNode.start);
+    const returnEnd = keyToRef(returnNode.end);
+    if (!lookupStart || !lookupEnd || !returnStart || !returnEnd) return makeError('#REF!');
+    const lookupCol = Math.min(lookupStart.col, lookupEnd.col);
+    const lookupFirstRow = Math.min(lookupStart.row, lookupEnd.row);
+    const lookupLastRow = Math.max(lookupStart.row, lookupEnd.row);
+    const returnCol = Math.min(returnStart.col, returnEnd.col);
+    const returnRowOffset = Math.min(returnStart.row, returnEnd.row) - lookupFirstRow;
+    for (let row = lookupFirstRow; row <= lookupLastRow; row += 1) {
+      const candidate = ctx.getValue(refToKey({ col: lookupCol, row }));
+      if (compareValues(candidate, needle) === 0) {
+        return ctx.getValue(refToKey({ col: returnCol, row: row + returnRowOffset }));
+      }
+    }
+    return args[3]?.[0] !== undefined ? args[3][0] : makeError('#N/A');
+  },
+  SPARKLINE: (_args, nodes, ctx) => {
+    const node = nodes[0];
+    if (node?.type !== 'range') return makeError('#VALUE!');
+    const values = rangeKeys(node.start, node.end).map((key) => ctx.getValue(key));
+    const numbers = values.filter((value): value is number => typeof value === 'number');
+    if (numbers.length === 0) return '';
+    const min = Math.min(...numbers);
+    const max = Math.max(...numbers);
+    const span = max - min || 1;
+    const blocks = ['\u2581', '\u2582', '\u2583', '\u2584', '\u2585', '\u2586', '\u2587'];
+    return values
+      .map((value) => {
+        if (typeof value !== 'number') return ' ';
+        const level = Math.min(6, Math.max(0, Math.round(((value - min) / span) * 6)));
+        return blocks[level];
+      })
+      .join('');
+  },
   SUMIF: (args, nodes, ctx) => {
     const rangeNode = nodes[0];
     const criteria = args[1]?.[0];

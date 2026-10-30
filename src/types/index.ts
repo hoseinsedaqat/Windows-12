@@ -477,6 +477,18 @@ export interface SheetChart {
   labelColumn?: string;
 }
 
+export type ConditionalFormatType = 'dataBar' | 'colorScale' | 'greater' | 'less' | 'duplicates' | 'contains';
+
+export interface ConditionalFormatRule {
+  id: string;
+  type: ConditionalFormatType;
+  /** A1 range, e.g. "B2:B20". */
+  range: string;
+  /** Threshold number or search text, depending on type. */
+  value?: string;
+  color?: string;
+}
+
 export interface SpreadsheetSheet {
   id: string;
   name: string;
@@ -488,6 +500,7 @@ export interface SpreadsheetSheet {
   frozenRows: number;
   frozenCols: number;
   charts?: SheetChart[];
+  conditionalFormats?: ConditionalFormatRule[];
 }
 
 export interface SpreadsheetDocument {

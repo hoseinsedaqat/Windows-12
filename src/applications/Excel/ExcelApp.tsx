@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bold,
+  Palette,
   Italic,
   Underline,
   AlignLeft,
@@ -35,6 +36,8 @@ import { useDocument } from '../../hooks/useDocument';
 import { isSpreadsheet, createSpreadsheet, createSheet } from '../../core/Documents';
 import { colToLetter, keyToRef, refToKey, expandRange, letterToCol, type CellRef } from '../../core/spreadsheet/cellref';
 import { evaluateSheet, displayValue, isError, SUPPORTED_FUNCTIONS, type CellValue } from '../../core/spreadsheet/engine';
+import { compileConditionalFormats } from '../../core/spreadsheet/conditional';
+import type { ConditionalFormatRule, ConditionalFormatType } from '../../types';
 import { formatCellValue, parseUserInput } from '../../core/spreadsheet/format';
 import { useT } from '../../i18n';
 import { Toolbar, ToolButton, Modal, Field, Select, Badge, BarChart, LineChart, PieChart, EmptyState } from '../../components/ui/Controls';
@@ -93,6 +96,9 @@ export function ExcelApp({ props }: AppWindowProps) {
   const [scrollTop, setScrollTop] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [cfOpen, setCfOpen] = useState(false);
+  const [cfType, setCfType] = useState<ConditionalFormatType>('greater');
+  const [cfValue, setCfValue] = useState('');
   const [chartOpen, setChartOpen] = useState(false);
   const [chartForm, setChartForm] = useState<{ type: SheetChart['type']; title: string }>({ type: 'bar', title: 'Chart' });
   const [formatOpen, setFormatOpen] = useState(false);
@@ -838,6 +844,32 @@ export function ExcelApp({ props }: AppWindowProps) {
 
   const charts = sheet.charts ?? [];
 
+  const playSoundSafe = (name: Parameters<typeof import('../../services/sound').playSound>[0]) => {
+    import('../../services/sound').then((mod) => mod.playSound(name)).catch(() => undefined);
+  };
+
+  const cfStyles = useMemo(
+    () => compileConditionalFormats(sheet.conditionalFormats ?? [], (key) => computed[key]),
+    [sheet.conditionalFormats, computed],
+  );
+
+  const selectionRangeText = (() => {
+    const a = refToKey(selection.anchor);
+    const b = refToKey(selection.focus);
+    return a === b ? a : `${a}:${b}`;
+  })();
+
+  const applyConditionalFormat = () => {
+    const rule: ConditionalFormatRule = {
+      id: `cf-${Date.now().toString(36)}`,
+      type: cfType,
+      range: selectionRangeText,
+      value: cfValue.trim() === '' ? undefined : cfValue.trim(),
+    };
+    commitSheet((current) => ({ ...current, conditionalFormats: [...(current.conditionalFormats ?? []), rule] }));
+    playSoundSafe('click');
+  };
+
   /** Renders one row of cells; shared by the scrollable body and frozen panes. */
   const cellsForRow = (row: number, frozen = false) => {
     const height = sheet.rowHeights[String(row)] ?? ROW_HEIGHT;
@@ -848,6 +880,7 @@ export function ExcelApp({ props }: AppWindowProps) {
       const left = colOffsets[col - 1] ?? 0;
       const cell = sheet.cells[key];
       const value = computed[key];
+      const cfStyle = cfStyles.get(key);
       const text =
         value === undefined || value === ''
           ? ''
@@ -874,8 +907,8 @@ export function ExcelApp({ props }: AppWindowProps) {
             fontWeight: cell?.s?.bold ? 700 : undefined,
             fontStyle: cell?.s?.italic ? 'italic' : undefined,
             textDecoration: cell?.s?.underline ? 'underline' : undefined,
-            color: cell?.s?.color ?? (error ? '#dc2626' : undefined),
-            background: cell?.s?.background ?? undefined,
+            color: cfStyle?.color ?? cell?.s?.color ?? (error ? '#dc2626' : undefined),
+            background: cfStyle?.background ?? cell?.s?.background ?? undefined,
             borderTop: cell?.s?.borders?.top ? '1px solid #94a3b8' : undefined,
             borderBottom: cell?.s?.borders?.bottom ? '1px solid #94a3b8' : undefined,
             borderLeft: cell?.s?.borders?.left ? '1px solid #94a3b8' : undefined,
@@ -900,6 +933,12 @@ export function ExcelApp({ props }: AppWindowProps) {
           onContextMenu={(event) => cellMenu(event, key)}
           title={cell?.v?.startsWith('=') ? cell.v : undefined}
         >
+          {cfStyle?.bar !== undefined && !isEditing ? (
+            <span
+              className="pointer-events-none absolute bottom-[2px] left-[2px] top-[2px] rounded-[2px] bg-[var(--accent)]/35"
+              style={{ width: `calc(${Math.round(cfStyle.bar * 100)}% - 4px)` }}
+            />
+          ) : null}
           {isEditing ? (
             <input
               ref={editRef}
@@ -956,6 +995,7 @@ export function ExcelApp({ props }: AppWindowProps) {
         <span className="mx-1 h-5 w-px bg-[var(--border)]" />
         <ToolButton icon={<Bold size={15} />} title={t('excel.bold')} active={Boolean(sheet.cells[activeKey]?.s?.bold)} onClick={() => toggleStyle('bold')} />
         <ToolButton icon={<Italic size={15} />} title={t('word.italic')} active={Boolean(sheet.cells[activeKey]?.s?.italic)} onClick={() => toggleStyle('italic')} />
+        <ToolButton icon={<Palette size={15} />} title={t('excel.cf')} active={cfOpen} onClick={() => setCfOpen((value) => !value)} />
         <ToolButton icon={<Underline size={15} />} title={t('word.underline')} active={Boolean(sheet.cells[activeKey]?.s?.underline)} onClick={() => toggleStyle('underline')} />
         <ColorMenu icon={<PaintBucket size={15} />} title={t('excel.fill')} colors={FILL_COLORS} onPick={(color) => applyStyle({ background: color === 'transparent' ? undefined : color })} />
         <ColorMenu icon={<Type size={15} />} title={t('excel.fontColor')} colors={FONT_COLORS} onPick={(color) => applyStyle({ color })} />
@@ -1032,8 +1072,46 @@ export function ExcelApp({ props }: AppWindowProps) {
           <p className="mb-1 font-semibold">{t('excel.functions')}</p>
           <p className="opacity-75">{SUPPORTED_FUNCTIONS.join(' · ')}</p>
           <p className="mt-1 opacity-60">
-            Examples: <code>=SUM(B2:B8)</code> · <code>=IF(A1&gt;10,"yes","no")</code> · <code>=AVERAGE(B2:B8)*1.1</code> · <code>=VLOOKUP(A2,A1:C9,3,FALSE)</code>
+            Examples: <code>=SUM(B2:B8)</code> · <code>=IF(A1&gt;10,"yes","no")</code> · <code>=AVERAGE(B2:B8)*1.1</code> · <code>=VLOOKUP(A2,A1:C9,3,FALSE)</code> · <code>=XLOOKUP(A2,A2:A9,C2:C9,"n/a")</code> · <code>=SPARKLINE(B2:H2)</code>
           </p>
+        </div>
+      ) : null}
+
+      {cfOpen ? (
+        <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
+          <span className="text-[10.5px] font-semibold uppercase tracking-wide opacity-55">{t('excel.cf')}</span>
+          {(['greater', 'less', 'dataBar', 'colorScale', 'duplicates', 'contains'] as ConditionalFormatType[]).map((type) => (
+            <button
+              key={type}
+              type="button"
+              className={`segment-button px-2 py-1 text-[11px] ${cfType === type ? 'segment-active' : ''}`}
+              onClick={() => setCfType(type)}
+            >
+              {t(`excel.cf.${type}`)}
+            </button>
+          ))}
+          {cfType === 'greater' || cfType === 'less' || cfType === 'contains' ? (
+            <input
+              value={cfValue}
+              onChange={(event) => setCfValue(event.target.value)}
+              className="win-input h-7 w-28 text-[12px]"
+              placeholder={t('excel.cf.value')}
+              dir="ltr"
+            />
+          ) : null}
+          <span className="text-[11px] tabular-nums opacity-60" dir="ltr">{selectionRangeText}</span>
+          <button type="button" className="win-button win-button-accent h-7 px-3 text-[11.5px]" onClick={applyConditionalFormat}>
+            {t('excel.cf.apply')}
+          </button>
+          {sheet.conditionalFormats?.length ? (
+            <button
+              type="button"
+              className="win-button h-7 px-3 text-[11.5px]"
+              onClick={() => commitSheet((current) => ({ ...current, conditionalFormats: [] }))}
+            >
+              {t('excel.cf.clear')} ({sheet.conditionalFormats.length})
+            </button>
+          ) : null}
         </div>
       ) : null}
 
