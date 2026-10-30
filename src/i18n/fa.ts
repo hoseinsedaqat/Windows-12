@@ -662,6 +662,10 @@ export const fa: TranslationDictionary = {
 
   'taskview.title': 'نمای وظایف',
   'taskview.noWindows': 'پنجره‌ای باز نیست',
+  'taskview.windowsLabel': 'پنجره',
+  'taskview.addDesktop': 'دسکتاپ جدید',
+  'taskview.removeDesktop': 'حذف دسکتاپ',
+  'taskview.dragHint': 'پنجره را روی یک دسکتاپ رها کنید تا منتقل شود',
   'taskview.desktops': 'دسکتاپ‌ها',
   'taskview.closeAll': 'بستن همه پنجره‌ها',
 

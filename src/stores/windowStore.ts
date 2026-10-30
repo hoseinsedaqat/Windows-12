@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { SnapPosition, WindowBounds, WindowInstance } from '../types';
+import type { SnapPosition, VirtualDesktop, WindowBounds, WindowInstance } from '../types';
 import { getApp } from '../core/ApplicationRegistry';
 import { uid } from '../services/id';
 
@@ -61,6 +61,9 @@ export interface WindowState {
   /** Window ids hidden by "Show desktop" so they can be restored. */
   hiddenByShowDesktop: string[];
   altTab: { active: boolean; index: number };
+  /** Virtual desktops (Windows 11 style workspaces). */
+  virtualDesktops: VirtualDesktop[];
+  activeVirtualDesktop: string;
   pinnedApps: string[];
   snapPreview: { position: SnapPosition; windowId: string } | null;
 
@@ -82,6 +85,10 @@ export interface WindowState {
   toggleShowDesktop: () => void;
   cycle: (direction: 1 | -1) => void;
   setAltTab: (active: boolean, index?: number) => void;
+  addVirtualDesktop: () => string;
+  removeVirtualDesktop: (id: string) => void;
+  switchVirtualDesktop: (id: string) => void;
+  moveWindowToDesktop: (windowId: string, desktopId: string) => void;
   togglePin: (appId: string) => void;
   endTask: (appId: string) => void;
   windowsForApp: (appId: string) => WindowInstance[];
@@ -96,6 +103,8 @@ export const useWindowStore = create<WindowState>()(
       showDesktop: false,
       hiddenByShowDesktop: [],
       altTab: { active: false, index: 0 },
+      virtualDesktops: [{ id: 'vd-main', name: 'Desktop 1' }],
+      activeVirtualDesktop: 'vd-main',
       pinnedApps: ['explorer', 'chrome', 'word', 'excel', 'vscode', 'accounting', 'settings'],
       snapPreview: null,
 
@@ -133,6 +142,7 @@ export const useWindowStore = create<WindowState>()(
               ),
               zTop: state.zTop + 1,
               showDesktop: false,
+              activeVirtualDesktop: desktopOf(existing),
             });
             return existing.id;
           }
@@ -155,6 +165,7 @@ export const useWindowStore = create<WindowState>()(
         );
 
         const instance: WindowInstance = {
+          virtualDesktop: state.activeVirtualDesktop,
           id,
           appId,
           title: options.title ?? app.name,
@@ -284,7 +295,9 @@ export const useWindowStore = create<WindowState>()(
               hiddenByShowDesktop: [],
             };
           }
-          const visible = state.windows.filter((win) => !win.minimized).map((win) => win.id);
+          const visible = windowsOnDesktop(state, state.activeVirtualDesktop)
+            .filter((win) => !win.minimized)
+            .map((win) => win.id);
           return {
             showDesktop: true,
             hiddenByShowDesktop: visible,
@@ -294,7 +307,7 @@ export const useWindowStore = create<WindowState>()(
 
       cycle: (direction) => {
         const state = get();
-        const candidates = [...state.windows].sort((a, b) => b.z - a.z);
+        const candidates = windowsOnDesktop(state, state.activeVirtualDesktop).sort((a, b) => b.z - a.z);
         if (candidates.length === 0) return;
         if (!state.altTab.active) {
           set({ altTab: { active: true, index: candidates.length > 1 ? 1 : 0 } });
@@ -307,7 +320,7 @@ export const useWindowStore = create<WindowState>()(
       setAltTab: (active, index) =>
         set((state) => {
           if (!active) {
-            const candidates = [...state.windows].sort((a, b) => b.z - a.z);
+            const candidates = windowsOnDesktop(state, state.activeVirtualDesktop).sort((a, b) => b.z - a.z);
             const target = candidates[state.altTab.index];
             if (target) {
               return {
@@ -322,6 +335,43 @@ export const useWindowStore = create<WindowState>()(
           }
           return { altTab: { active: true, index: index ?? state.altTab.index } };
         }),
+
+      addVirtualDesktop: () => {
+        const state = get();
+        const id = `vd-${Date.now().toString(36)}`;
+        const name = translateDesktopName(state.virtualDesktops.length + 1);
+        set({ virtualDesktops: [...state.virtualDesktops, { id, name }], activeVirtualDesktop: id });
+        return id;
+      },
+
+      removeVirtualDesktop: (id) =>
+        set((state) => {
+          if (state.virtualDesktops.length <= 1) return state;
+          const index = state.virtualDesktops.findIndex((desktop) => desktop.id === id);
+          if (index < 0) return state;
+          const neighbour = state.virtualDesktops[index - 1] ?? state.virtualDesktops[index + 1];
+          const windows = state.windows.map((win) =>
+            desktopOf(win) === id ? { ...win, virtualDesktop: neighbour.id } : win,
+          );
+          const virtualDesktops = state.virtualDesktops.filter((desktop) => desktop.id !== id);
+          return {
+            windows,
+            virtualDesktops,
+            activeVirtualDesktop: state.activeVirtualDesktop === id ? neighbour.id : state.activeVirtualDesktop,
+          };
+        }),
+
+      switchVirtualDesktop: (id) =>
+        set((state) =>
+          state.virtualDesktops.some((desktop) => desktop.id === id)
+            ? { activeVirtualDesktop: id, showDesktop: false, hiddenByShowDesktop: [], altTab: { active: false, index: 0 } }
+            : state,
+        ),
+
+      moveWindowToDesktop: (windowId, desktopId) =>
+        set((state) => ({
+          windows: state.windows.map((win) => (win.id === windowId ? { ...win, virtualDesktop: desktopId } : win)),
+        })),
 
       togglePin: (appId) =>
         set((state) => ({
@@ -340,6 +390,8 @@ export const useWindowStore = create<WindowState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         pinnedApps: state.pinnedApps,
+        virtualDesktops: state.virtualDesktops,
+        activeVirtualDesktop: state.activeVirtualDesktop,
         windows: state.windows.map((win) => ({ ...win, minimized: true, closing: false })),
         zTop: state.zTop,
       }),
@@ -362,8 +414,21 @@ export const useWindowStore = create<WindowState>()(
 
 /* Selectors ---------------------------------------------------------------- */
 
+/** Virtual desktop a window belongs to (legacy windows default to the first). */
+export function desktopOf(win: WindowInstance): string {
+  return win.virtualDesktop ?? 'vd-main';
+}
+
+function translateDesktopName(n: number): string {
+  return `Desktop ${n}`;
+}
+
+export function windowsOnDesktop(state: WindowState, desktopId: string): WindowInstance[] {
+  return state.windows.filter((win) => desktopOf(win) === desktopId);
+}
+
 export function selectActiveWindow(state: WindowState): WindowInstance | null {
-  const visible = state.windows.filter((win) => !win.minimized);
+  const visible = state.windows.filter((win) => !win.minimized && desktopOf(win) === state.activeVirtualDesktop);
   if (!visible.length) return null;
   return visible.reduce((top, win) => (win.z > top.z ? win : top), visible[0]);
 }
@@ -413,6 +478,7 @@ export function selectTaskbarApps(state: WindowState): TaskbarAppGroup[] {
     }
   }
   for (const win of state.windows) {
+    if (desktopOf(win) !== state.activeVirtualDesktop) continue;
     const list = grouped.get(win.appId) ?? [];
     list.push(win);
     grouped.set(win.appId, list);

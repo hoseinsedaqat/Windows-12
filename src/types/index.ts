@@ -101,6 +101,13 @@ export interface WindowInstance {
   openedAt: number;
   /** Set while the open/close animation plays. */
   closing?: boolean;
+  /** Virtual desktop this window lives on (defaults to the first desktop). */
+  virtualDesktop?: string;
+}
+
+export interface VirtualDesktop {
+  id: string;
+  name: string;
 }
 
 /* ------------------------------------------------------------------ */

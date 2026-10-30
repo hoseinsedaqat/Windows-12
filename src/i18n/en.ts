@@ -660,6 +660,10 @@ export const en = {
 
   'taskview.title': 'Task view',
   'taskview.noWindows': 'No open windows',
+  'taskview.windowsLabel': 'windows',
+  'taskview.addDesktop': 'New desktop',
+  'taskview.removeDesktop': 'Remove desktop',
+  'taskview.dragHint': 'Drag a window onto a desktop to move it',
   'taskview.desktops': 'Desktops',
   'taskview.closeAll': 'Close all windows',
 
