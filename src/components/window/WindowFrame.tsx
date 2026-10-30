@@ -8,8 +8,8 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { Minus, Square, Copy, X, Grid2x2, RefreshCw } from 'lucide-react';
-import type { SnapPosition, WindowBounds, WindowInstance } from '../../types';
-import { useWindowStore, snapBounds, workArea } from '../../stores/windowStore';
+import type { SnapPosition, SnapZone, WindowBounds, WindowInstance } from '../../types';
+import {useWindowStore, snapBounds, workArea, desktopOf } from '../../stores/windowStore';
 import { getApp } from '../../core/ApplicationRegistry';
 import { getAppComponent } from '../../applications/registry';
 import { AppIcon } from '../icons/AppIcons';
@@ -21,9 +21,43 @@ import { useSettingsStore } from '../../stores/settingsStore';
 
 type ResizeDirection = 'n' | 's' | 'w' | 'e' | 'nw' | 'ne' | 'sw' | 'se';
 
-const SNAP_LAYOUTS: { id: string; zones: SnapPosition[]; label: string }[] = [
-  { id: 'halves', zones: ['left', 'right'], label: '1/2 + 1/2' },
-  { id: 'quarters', zones: ['top-left', 'top-right', 'bottom-left', 'bottom-right'], label: '1/4 ×4' },
+const SNAP_LAYOUTS: { id: string; zones: SnapZone[]; label: string }[] = [
+  {
+    id: 'halves',
+    label: '1/2 + 1/2',
+    zones: [
+      { x: 0, y: 0, w: 0.5, h: 1 },
+      { x: 0.5, y: 0, w: 0.5, h: 1 },
+    ],
+  },
+  {
+    id: 'thirds',
+    label: '1/3 × 3',
+    zones: [
+      { x: 0, y: 0, w: 1 / 3, h: 1 },
+      { x: 1 / 3, y: 0, w: 1 / 3, h: 1 },
+      { x: 2 / 3, y: 0, w: 1 / 3, h: 1 },
+    ],
+  },
+  {
+    id: 'quarters',
+    label: '1/4 × 4',
+    zones: [
+      { x: 0, y: 0, w: 0.5, h: 0.5 },
+      { x: 0.5, y: 0, w: 0.5, h: 0.5 },
+      { x: 0, y: 0.5, w: 0.5, h: 0.5 },
+      { x: 0.5, y: 0.5, w: 0.5, h: 0.5 },
+    ],
+  },
+  {
+    id: 'side-stack',
+    label: '2/3 + stacked 1/3',
+    zones: [
+      { x: 0, y: 0, w: 2 / 3, h: 1 },
+      { x: 2 / 3, y: 0, w: 1 / 3, h: 0.5 },
+      { x: 2 / 3, y: 0.5, w: 1 / 3, h: 0.5 },
+    ],
+  },
 ];
 
 interface Props {
@@ -40,6 +74,7 @@ export function WindowFrame({ window: win }: Props) {
   const closeWindow = useWindowStore((state) => state.closeWindow);
   const setBounds = useWindowStore((state) => state.setBounds);
   const snapWindow = useWindowStore((state) => state.snapWindow);
+  const snapToZone = useWindowStore((state) => state.snapToZone);
   const setSnapPreview = useWindowStore((state) => state.setSnapPreview);
   const openContextMenu = useShellStore((state) => state.openContextMenu);
   const animations = useSettingsStore((state) => state.settings.display.animations);
@@ -47,6 +82,7 @@ export function WindowFrame({ window: win }: Props) {
   const [liveBounds, setLiveBounds] = useState<WindowBounds | null>(null);
   const [snapHint, setSnapHint] = useState<SnapPosition | null>(null);
   const [layoutsOpen, setLayoutsOpen] = useState(false);
+  const [pendingZones, setPendingZones] = useState<{ groupId: string; zones: SnapZone[] } | null>(null);
   const [crashed, setCrashed] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const dragState = useRef<{
@@ -287,42 +323,55 @@ export function WindowFrame({ window: win }: Props) {
               </button>
               {layoutsOpen ? (
                 <div
-                  className="panel absolute right-0 top-full z-50 mt-1 w-64 p-2"
+                  className="panel absolute right-0 top-full z-50 mt-1 w-72 p-2"
                   onMouseLeave={() => setLayoutsOpen(false)}
                   onPointerDown={(event) => event.stopPropagation()}
                 >
                   <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wide opacity-60">
                     {t('window.snapLayouts')}
                   </p>
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
                     {SNAP_LAYOUTS.map((layout) => (
-                      <div key={layout.id} className="flex gap-2">
-                        {layout.zones.map((zone) => (
-                          <button
-                            key={zone}
-                            type="button"
-                            onClick={() => {
-                              snapWindow(win.id, zone);
-                              setLayoutsOpen(false);
-                              playSound('snap');
-                            }}
-                            className="h-12 flex-1 rounded border border-[var(--border-strong)] bg-[var(--surface-2)] transition hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]"
-                            title={zone}
-                          />
-                        ))}
+                      <div key={layout.id} className="space-y-1">
+                        <div className="relative h-14 w-full overflow-hidden rounded border border-[var(--border)] bg-[var(--surface-2)]">
+                          {layout.zones.map((zone, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() => {
+                                const groupId = `sg-${Date.now().toString(36)}`;
+                                snapToZone(win.id, zone, groupId);
+                                const remaining = layout.zones.filter((item) => item !== zone);
+                                if (remaining.length) setPendingZones({ groupId, zones: remaining });
+                                setLayoutsOpen(false);
+                                playSound('snap');
+                              }}
+                              className="absolute rounded-[3px] border border-[var(--border-strong)] bg-[var(--surface-solid)] transition hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]"
+                              style={{
+                                left: `calc(${zone.x * 100}% + 2px)`,
+                                top: `calc(${zone.y * 100}% + 2px)`,
+                                width: `calc(${zone.w * 100}% - 4px)`,
+                                height: `calc(${zone.h * 100}% - 4px)`,
+                              }}
+                              title={layout.label}
+                              aria-label={layout.label}
+                            />
+                          ))}
+                        </div>
+                        <p className="text-center text-[9.5px] opacity-50">{layout.label}</p>
                       </div>
                     ))}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        snapWindow(win.id, 'maximize');
-                        setLayoutsOpen(false);
-                      }}
-                      className="win-button w-full text-xs"
-                    >
-                      {t('window.maximize')}
-                    </button>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      snapWindow(win.id, 'maximize');
+                      setLayoutsOpen(false);
+                    }}
+                    className="win-button mt-2 w-full text-xs"
+                  >
+                    {t('window.maximize')}
+                  </button>
                 </div>
               ) : null}
             </div>
@@ -436,7 +485,45 @@ export function WindowFrame({ window: win }: Props) {
           </>
         )}
       </section>
+
+      {pendingZones ? (
+        <div className="fixed inset-0 z-[7500] flex items-start justify-center bg-black/35 pt-24" onClick={() => setPendingZones(null)}>
+          <div
+            className="panel w-[min(420px,calc(100vw-24px))] p-3"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-label={t('window.chooseWindow')}
+          >
+            <p className="mb-2 text-[12px] font-semibold">{t('window.chooseWindow')}</p>
+            <div className="scroll-thin max-h-64 space-y-1 overflow-y-auto">
+              {useWindowStore
+                .getState()
+                .windows.filter((other) => other.id !== win.id && desktopOf(other) === useWindowStore.getState().activeVirtualDesktop)
+                .map((other) => (
+                  <button
+                    key={other.id}
+                    type="button"
+                    className="list-row w-full"
+                    onClick={() => {
+                      const [next, ...rest] = pendingZones.zones;
+                      snapToZone(other.id, next, pendingZones.groupId);
+                      playSound('snap');
+                      setPendingZones(rest.length ? { groupId: pendingZones.groupId, zones: rest } : null);
+                    }}
+                  >
+                    <AppIcon appId={other.appId} size={18} />
+                    <span className="min-w-0 flex-1 truncate text-start text-[12.5px]">{other.title}</span>
+                  </button>
+                ))}
+            </div>
+            <button type="button" className="win-button mt-2 w-full text-xs" onClick={() => setPendingZones(null)}>
+              {t('common.cancel')}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </>
+
   );
 }
 

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { SnapPosition, VirtualDesktop, WindowBounds, WindowInstance } from '../types';
+import type { SnapPosition, SnapZone, VirtualDesktop, WindowBounds, WindowInstance } from '../types';
 import { getApp } from '../core/ApplicationRegistry';
 import { uid } from '../services/id';
 
@@ -79,6 +79,10 @@ export interface WindowState {
   focus: (id: string) => void;
   setBounds: (id: string, bounds: Partial<WindowBounds>) => void;
   snapWindow: (id: string, position: SnapPosition) => void;
+  /** Snap a window to a fractional zone of the work area (snap layouts). */
+  snapToZone: (id: string, zone: SnapZone, groupId?: string) => void;
+  /** Focus every window of a snap group (restore the layout together). */
+  restoreSnapGroup: (groupId: string) => void;
   setSnapPreview: (preview: { position: SnapPosition; windowId: string } | null) => void;
   setWindowTitle: (id: string, title: string) => void;
   setWindowProps: (id: string, props: Record<string, unknown>) => void;
@@ -107,6 +111,46 @@ export const useWindowStore = create<WindowState>()(
       activeVirtualDesktop: 'vd-main',
       pinnedApps: ['explorer', 'chrome', 'word', 'excel', 'vscode', 'accounting', 'settings'],
       snapPreview: null,
+
+      snapToZone: (id, zone, groupId) =>
+        set((state) => {
+          const area = workArea(state.desktop);
+          const bounds = {
+            x: Math.round(area.x + area.width * zone.x),
+            y: Math.round(area.y + area.height * zone.y),
+            width: Math.round(area.width * zone.w),
+            height: Math.round(area.height * zone.h),
+          };
+          return {
+            windows: state.windows.map((win) =>
+              win.id === id
+                ? {
+                    ...win,
+                    bounds,
+                    restoreBounds: win.maximized || win.snap !== 'none' ? win.restoreBounds : win.bounds,
+                    maximized: false,
+                    snap: 'none' as SnapPosition,
+                    snapZone: zone,
+                    snapGroup: groupId ?? win.snapGroup,
+                    z: state.zTop + 1,
+                    minimized: false,
+                  }
+                : win,
+            ),
+            zTop: state.zTop + 1,
+          };
+        }),
+
+      restoreSnapGroup: (groupId) =>
+        set((state) => {
+          let z = state.zTop;
+          return {
+            zTop: z + state.windows.filter((win) => win.snapGroup === groupId).length,
+            windows: state.windows.map((win) =>
+              win.snapGroup === groupId ? { ...win, minimized: false, z: ++z } : win,
+            ),
+          };
+        }),
 
       setDesktopSize: (desktop) =>
         set((state) => ({

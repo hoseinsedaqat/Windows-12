@@ -103,6 +103,17 @@ export interface WindowInstance {
   closing?: boolean;
   /** Virtual desktop this window lives on (defaults to the first desktop). */
   virtualDesktop?: string;
+  /** Snap-layout zone + group assigned by the titlebar layout flyout. */
+  snapZone?: SnapZone;
+  snapGroup?: string;
+}
+
+/** Fractional work-area rectangle used by snap layouts. */
+export interface SnapZone {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
 }
 
 export interface VirtualDesktop {

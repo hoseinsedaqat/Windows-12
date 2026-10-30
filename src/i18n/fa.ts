@@ -146,6 +146,7 @@ export const fa: TranslationDictionary = {
   'window.alwaysOnTop': 'همیشه در بالا',
   'window.crashed': 'این برنامه پاسخ نمی‌دهد',
   'window.reloadApp': 'بارگذاری مجدد برنامه',
+  'window.chooseWindow': 'پنجره‌ای برای ناحیه بعدی انتخاب کنید',
   'window.snapLayouts': 'چیدمان‌های Snap',
   'window.newWindow': 'پنجره جدید',
 

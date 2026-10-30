@@ -144,6 +144,7 @@ export const en = {
   'window.alwaysOnTop': 'Keep on top',
   'window.crashed': 'This app stopped responding',
   'window.reloadApp': 'Reload app',
+  'window.chooseWindow': 'Choose a window for the next zone',
   'window.snapLayouts': 'Snap layouts',
   'window.newWindow': 'New window',
 
