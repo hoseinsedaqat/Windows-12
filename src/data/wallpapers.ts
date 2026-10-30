@@ -17,7 +17,13 @@ export interface Wallpaper {
 }
 
 function svgUrl(svg: string): string {
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg.replace(/\s{2,}/g, ' ').trim())}`;
+  // encodeURIComponent leaves ( ) ' untouched, but those characters break an
+  // *unquoted* CSS url(...) — thumbnails use background-image, so encode them too.
+  const encoded = encodeURIComponent(svg.replace(/\s{2,}/g, ' ').trim())
+    .replace(/\(/g, '%28')
+    .replace(/\)/g, '%29')
+    .replace(/'/g, '%27');
+  return `data:image/svg+xml;charset=utf-8,${encoded}`;
 }
 
 const shell = (inner: string, defs = '') =>
@@ -159,8 +165,18 @@ export function pickAutoWallpaperId(hour: number): string {
   return 'midnight-grid';
 }
 
+const autoPreview = svgUrl(
+  shell(
+    `<rect x="0" y="0" width="960" height="540" fill="#f97316"/>
+     <rect x="960" y="0" width="960" height="540" fill="#7dd3fc"/>
+     <rect x="0" y="540" width="960" height="540" fill="#14b8a6"/>
+     <rect x="960" y="540" width="960" height="540" fill="#1e3a8a"/>
+     <circle cx="960" cy="540" r="150" fill="#ffffff" opacity="0.85"/>`,
+  ),
+);
+
 export const WALLPAPERS: Wallpaper[] = [
-  { id: 'auto', name: 'Dynamic (by time of day)', tone: 'dark', url: '', accent: '#38bdf8', category: 'concept' },
+  { id: 'auto', name: 'Dynamic (by time of day)', tone: 'dark', url: autoPreview, accent: '#38bdf8', category: 'concept' },
   { id: 'aurora-mesh', name: 'Aurora Mesh', tone: 'dark', url: auroraMesh, accent: '#3b82f6', category: 'concept' },
   { id: 'bloom-dark', name: 'Bloom', tone: 'dark', url: bloomDark, accent: '#6366f1', category: 'abstract' },
   { id: 'concept-hero', name: 'Concept Mark', tone: 'dark', url: conceptHero, accent: '#38bdf8', category: 'concept' },
