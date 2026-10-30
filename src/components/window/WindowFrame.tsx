@@ -317,7 +317,6 @@ export function WindowFrame({ window: win }: Props) {
                 onClick={() => setLayoutsOpen((value) => !value)}
                 title={t('window.snapLayouts')}
                 aria-label={t('window.snapLayouts')}
-                tabIndex={-1}
               >
                 <Grid2x2 size={14} />
               </button>

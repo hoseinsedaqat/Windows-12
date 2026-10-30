@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { Inbox, Send, Trash2, Star, Pencil, X, ArchiveRestore, Eye, EyeOff, Info } from 'lucide-react';
 import { useMailStore, type MailFolder, type MailMessage } from '../../stores/mailStore';
 import { useT } from '../../i18n';
@@ -17,6 +18,8 @@ export default function MailApp() {
   const [folder, setFolder] = useState<MailFolder>('inbox');
   const [selected, setSelected] = useState<string | null>(null);
   const [composing, setComposing] = useState(false);
+  const composeRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(composeRef, { active: composing, onEscape: () => setComposing(false) });
   const [draft, setDraft] = useState({ to: '', subject: '', body: '' });
 
   const list = useMemo(
@@ -147,7 +150,7 @@ export default function MailApp() {
 
       {composing ? (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 p-4" onClick={() => setComposing(false)}>
-          <div className="panel w-[min(520px,100%)] p-4" onClick={(event) => event.stopPropagation()}>
+          <div ref={composeRef} className="panel w-[min(520px,100%)] p-4" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label={t('mail.compose')}>
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-[13px] font-semibold">{t('mail.compose')}</h3>
               <button type="button" className="icon-button h-7 w-7" onClick={() => setComposing(false)} aria-label={t('common.close')}>
