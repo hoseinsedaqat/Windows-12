@@ -16,3 +16,12 @@ ReactDOM.createRoot(container).render(
 window.addEventListener('resize', () => {
   window.dispatchEvent(new CustomEvent('win12:resize'));
 });
+
+// PWA: register the offline shell worker in production builds only.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch((error) => {
+      console.warn('[Windows 12 Concept] service worker registration failed', error);
+    });
+  });
+}
