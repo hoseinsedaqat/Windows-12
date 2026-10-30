@@ -80,6 +80,7 @@ export const en = {
   'lock.showPassword': 'Show password',
   'lock.hidePassword': 'Hide password',
 
+  'desktop.dropHint': 'Drop to save on the Desktop',
   'desktop.thisPc': 'This PC',
   'desktop.recycleBin': 'Recycle Bin',
   'desktop.view': 'View',

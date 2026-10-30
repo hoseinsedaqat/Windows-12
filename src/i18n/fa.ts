@@ -82,6 +82,7 @@ export const fa: TranslationDictionary = {
   'lock.showPassword': 'نمایش رمز',
   'lock.hidePassword': 'پنهان کردن رمز',
 
+  'desktop.dropHint': 'رها کنید تا روی دسکتاپ ذخیره شود',
   'desktop.thisPc': 'رایانه من',
   'desktop.recycleBin': 'سطل بازیافت',
   'desktop.view': 'نمایش',
