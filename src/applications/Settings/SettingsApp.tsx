@@ -81,6 +81,7 @@ export function SettingsApp({ props }: AppWindowProps) {
   const settings = useSettingsStore((state) => state.settings);
   const setDisplay = useSettingsStore((state) => state.setDisplay);
   const setSound = useSettingsStore((state) => state.setSound);
+  const setIdle = useSettingsStore((state) => state.setIdle);
   const setNetwork = useSettingsStore((state) => state.setNetwork);
   const setPersonalization = useSettingsStore((state) => state.setPersonalization);
   const setLocale = useSettingsStore((state) => state.setLocale);
@@ -109,6 +110,8 @@ export function SettingsApp({ props }: AppWindowProps) {
   const [section, setSection] = useState<string>((props.section as string) ?? 'display');
   const [query, setQuery] = useState('');
   const [deviceName, setDeviceName] = useState('CONCEPT-PC');
+  const [eggClicks, setEggClicks] = useState(0);
+  const [eggOn, setEggOn] = useState(false);
   const [passwordDraft, setPasswordDraft] = useState({ next: '', confirm: '' });
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
 
@@ -191,6 +194,28 @@ export function SettingsApp({ props }: AppWindowProps) {
             </Card>
             <ToggleRow label={t('settings.animations')} description={t('settings.animationsHint')} checked={settings.display.animations} onChange={(value) => setDisplay({ animations: value })} />
             <ToggleRow label={t('settings.reduceMotion')} description={t('settings.reduceMotionHint')} checked={settings.display.reduceMotion} onChange={(value) => setDisplay({ reduceMotion: value })} />
+            <Card title={t('settings.screensaver')}>
+              <ToggleRow label={t('settings.screensaver')} description={t('settings.screensaverHint')} checked={settings.idle.screensaver} onChange={(value) => setIdle({ screensaver: value })} />
+              <div className="mt-2 space-y-2">
+                <div>
+                  <p className="mb-1 text-[11.5px] opacity-70">{t('settings.screensaverAfter')}</p>
+                  <Segmented
+                    value={String(settings.idle.screensaverMinutes)}
+                    onChange={(value) => setIdle({ screensaverMinutes: Number(value) })}
+                    options={['1', '2', '5', '10'].map((minutes) => ({ value: minutes, label: t('settings.minutes', { m: minutes }) }))}
+                  />
+                </div>
+                <div>
+                  <p className="mb-1 text-[11.5px] opacity-70">{t('settings.idleLock')}</p>
+                  <Segmented
+                    value={String(settings.idle.lockMinutes)}
+                    onChange={(value) => setIdle({ lockMinutes: Number(value) })}
+                    options={[{ value: '0', label: t('settings.never') }, ...['3', '5', '10', '15'].map((minutes) => ({ value: minutes, label: t('settings.minutes', { m: minutes }) }))]}
+                  />
+                </div>
+              </div>
+              <p className="mt-2 text-[11px] opacity-55">{t('settings.idleHint')}</p>
+            </Card>
             <Card title={t('settings.resolution')}>
               <p className="text-[12px] opacity-75">
                 {window.screen.width} × {window.screen.height} · {window.devicePixelRatio.toFixed(2)}× DPR · viewport {window.innerWidth}×{window.innerHeight}
@@ -206,6 +231,14 @@ export function SettingsApp({ props }: AppWindowProps) {
             <SliderRow label={t('settings.volume')} value={settings.sound.volume} onChange={(value) => setSound({ volume: value })} icon={<Volume2 size={15} />} />
             <ToggleRow label={t('settings.mute')} description={t('settings.muteHint')} checked={settings.sound.muted} onChange={(value) => setSound({ muted: value })} />
             <ToggleRow label={t('settings.systemSounds')} description={t('settings.systemSoundsHint')} checked={settings.sound.systemSounds} onChange={(value) => setSound({ systemSounds: value })} />
+            <Card title={t('settings.soundTheme')}>
+              <Segmented
+                value={settings.sound.theme}
+                onChange={(value) => setSound({ theme: value as typeof settings.sound.theme })}
+                options={['classic', 'soft', 'retro', 'minimal'].map((theme) => ({ value: theme, label: t(`settings.theme.${theme}`) }))}
+              />
+              <p className="mt-2 text-[11px] opacity-60">{t('settings.soundThemeHint')}</p>
+            </Card>
             <Card title={t('settings.testSound')}>
               <div className="flex flex-wrap gap-2">
                 {(['click', 'open', 'close', 'notify', 'error', 'snap', 'startup'] as const).map((name) => (
@@ -418,6 +451,26 @@ export function SettingsApp({ props }: AppWindowProps) {
                 <Spec label={t('settings.storageUsed')} value={formatBytes(fs.usedBytes)} />
                 <Spec label={t('settings.sessionStarted')} value={formatDate(system.sessionStartedAt, true)} />
                 <Spec label={t('settings.windowsOpen')} value={String(windows.length)} />
+              </dl>
+              <p
+                className="mt-3 cursor-default select-none text-center text-[10px] opacity-30 transition hover:opacity-70"
+                onClick={() => {
+                  const next = eggClicks + 1;
+                  setEggClicks(next);
+                  if (next >= 5 && !eggOn) {
+                    setEggOn(true);
+                    playSound('startup');
+                  }
+                }}
+              >
+                Windows 12 Concept — {t('settings.eggWhisper')}
+              </p>
+              {eggOn ? (
+                <div className="mt-2 rounded-lg border border-fuchsia-400/30 bg-fuchsia-500/10 p-3 text-center text-[12px] leading-relaxed">
+                  🎉 {t('settings.eggFound')} <span className="inline-block animate-bounce">🪟</span>
+                </div>
+              ) : null}
+              <dl className="hidden">
               </dl>
             </Card>
             <Note tone="warning">{t('settings.aboutDisclaimer')}</Note>

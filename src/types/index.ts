@@ -206,11 +206,23 @@ export interface DisplaySettings {
   animations: boolean;
 }
 
+export type SoundTheme = 'classic' | 'soft' | 'retro' | 'minimal';
+
 export interface SoundSettings {
   /** Simulated system volume (0-100). It does NOT control the real device volume. */
   volume: number;
   muted: boolean;
   systemSounds: boolean;
+  /** Synthesis character of the simulated system sounds. */
+  theme: SoundTheme;
+}
+
+export interface IdleSettings {
+  /** Show the animated screensaver after `screensaverMinutes` of inactivity. */
+  screensaver: boolean;
+  screensaverMinutes: number;
+  /** Lock the session after `lockMinutes` of inactivity (0 = never). */
+  lockMinutes: number;
 }
 
 export interface NetworkSettings {
@@ -282,6 +294,7 @@ export interface MultitaskingSettings {
 export interface SystemSettings {
   display: DisplaySettings;
   sound: SoundSettings;
+  idle: IdleSettings;
   network: NetworkSettings;
   personalization: PersonalizationSettings;
   locale: LocaleSettings;

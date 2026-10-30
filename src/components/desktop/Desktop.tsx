@@ -61,7 +61,13 @@ export function Desktop() {
    *  (no movement in between) open the icon ourselves. */
   const lastClickRef = useRef<{ id: string; at: number } | null>(null);
 
-  const wallpaper = useMemo(() => getWallpaper(personalization.wallpaperId), [personalization.wallpaperId]);
+  const [autoTick, setAutoTick] = useState(0);
+  useEffect(() => {
+    if (personalization.wallpaperId !== 'auto') return undefined;
+    const id = window.setInterval(() => setAutoTick((value) => value + 1), 60_000);
+    return () => window.clearInterval(id);
+  }, [personalization.wallpaperId]);
+  const wallpaper = useMemo(() => getWallpaper(personalization.wallpaperId), [personalization.wallpaperId, autoTick]);
   const metrics = METRICS[personalization.desktopIconSize];
 
   useEffect(() => {

@@ -3,7 +3,7 @@ import type { ContextMenuItem } from '../types';
 
 /** Shell-level UI state: which flyout is open, context menus and modal dialogs. */
 
-export type ShellPanel = 'start' | 'quick' | 'notifications' | 'taskview' | 'accessibility' | 'calendar' | 'network' | 'sound' | 'weather' | null;
+export type ShellPanel = 'start' | 'quick' | 'notifications' | 'taskview' | 'accessibility' | 'calendar' | 'network' | 'sound' | 'weather' | 'widgets' | null;
 
 export interface ContextMenuState {
   x: number;

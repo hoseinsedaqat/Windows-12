@@ -45,7 +45,9 @@ afterEach(() => {
 describe('desktop file drop', () => {
   it('shows the drop hint while dragging files over', () => {
     act(() => {
-      container.querySelector('[data-testid="desktop-surface"]')!.dispatchEvent(dragEvent('dragover'));
+      container
+        .querySelector('[data-testid="desktop-surface"]')!
+        .dispatchEvent(dragEvent('dragover', [new File(['x'], 'hover.txt', { type: 'text/plain' })]));
     });
     expect(container.textContent).toContain('Drop to save on the Desktop');
   });

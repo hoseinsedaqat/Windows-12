@@ -13,6 +13,7 @@ import type {
   SoundSettings,
   SystemSettings,
   ThemeMode,
+  IdleSettings,
 } from '../types';
 
 export const ACCENTS = [
@@ -33,6 +34,12 @@ export const defaultSettings: SystemSettings = {
     volume: 45,
     muted: false,
     systemSounds: true,
+    theme: 'classic',
+  },
+  idle: {
+    screensaver: true,
+    screensaverMinutes: 5,
+    lockMinutes: 0,
   },
   network: {
     wifiEnabled: true,
@@ -111,6 +118,7 @@ export interface SettingsState {
   settings: SystemSettings;
   hydrated: boolean;
   setDisplay: (patch: Partial<DisplaySettings>) => void;
+  setIdle: (patch: Partial<IdleSettings>) => void;
   setSound: (patch: Partial<SoundSettings>) => void;
   setNetwork: (patch: Partial<NetworkSettings>) => void;
   setPersonalization: (patch: Partial<PersonalizationSettings>) => void;
@@ -138,6 +146,7 @@ export const useSettingsStore = create<SettingsState>()(
       settings: defaultSettings,
       hydrated: false,
       setDisplay: (patch) => set((s) => ({ settings: { ...s.settings, display: mergeSection(s.settings.display, patch) } })),
+      setIdle: (patch) => set((s) => ({ settings: { ...s.settings, idle: { ...s.settings.idle, ...patch } } })),
       setSound: (patch) => set((s) => ({ settings: { ...s.settings, sound: mergeSection(s.settings.sound, patch) } })),
       setNetwork: (patch) =>
         set((s) => {

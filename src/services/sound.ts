@@ -36,6 +36,35 @@ export type SoundName =
   | 'snap'
   | 'type';
 
+import type { SoundTheme } from '../types';
+
+interface ThemeMod {
+  type?: OscillatorType;
+  gain: number;
+  duration: number;
+}
+
+const THEME_MODS: Record<SoundTheme, ThemeMod> = {
+  classic: { gain: 1, duration: 1 },
+  soft: { type: 'sine', gain: 0.7, duration: 1.35 },
+  retro: { type: 'square', gain: 0.45, duration: 0.75 },
+  minimal: { gain: 0.5, duration: 0.55 },
+};
+
+/** Pure: reshapes a sound recipe for the selected theme. */
+export function applyTheme(
+  recipe: { freq: number[]; type: OscillatorType; duration: number; gain: number },
+  theme: SoundTheme,
+): { freq: number[]; type: OscillatorType; duration: number; gain: number } {
+  const mod = THEME_MODS[theme] ?? THEME_MODS.classic;
+  return {
+    freq: recipe.freq,
+    type: mod.type ?? recipe.type,
+    duration: recipe.duration * mod.duration,
+    gain: recipe.gain * mod.gain,
+  };
+}
+
 const RECIPES: Record<SoundName, { freq: number[]; type: OscillatorType; duration: number; gain: number }> = {
   click: { freq: [880], type: 'sine', duration: 0.05, gain: 0.12 },
   open: { freq: [523.25, 784], type: 'sine', duration: 0.18, gain: 0.16 },
@@ -55,8 +84,9 @@ export function playSound(name: SoundName): void {
   if (!systemSounds || muted || volume <= 0) return;
   const ctx = getContext();
   if (!ctx) return;
-  const recipe = RECIPES[name];
-  if (!recipe) return;
+  const rawRecipe = RECIPES[name];
+  if (!rawRecipe) return;
+  const recipe = applyTheme(rawRecipe, useSettingsStore.getState().settings.sound.theme ?? 'classic');
   const scale = volume / 100;
 
   // Audio is decoration: a blocked or unsupported audio graph must never break
