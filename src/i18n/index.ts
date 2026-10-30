@@ -1,10 +1,11 @@
 import { useSettingsStore } from '../stores/settingsStore';
 import { en, type TranslationKey, type TranslationDictionary } from './en';
 import { fa } from './fa';
+import { de } from './de';
 
-export type Lang = 'en' | 'fa';
+export type Lang = 'en' | 'fa' | 'de';
 
-export const dictionaries: Record<Lang, TranslationDictionary> = { en, fa };
+export const dictionaries: Record<Lang, Partial<TranslationDictionary>> = { en, fa, de };
 
 export type { TranslationKey };
 
@@ -40,7 +41,7 @@ export function useT(): UseTranslation {
     lang: language,
     dir,
     isRTL: dir === 'rtl',
-    bcp47: language === 'fa' ? 'fa-IR' : 'en-US',
+    bcp47: language === 'fa' ? 'fa-IR' : language === 'de' ? 'de-DE' : 'en-US',
     t: (key, params) => translate(language, key, params),
   };
 }

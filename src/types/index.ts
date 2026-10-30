@@ -193,7 +193,7 @@ export interface UserAccount {
 /* Settings                                                            */
 /* ------------------------------------------------------------------ */
 
-export type LanguageCode = 'en' | 'fa';
+export type LanguageCode = 'en' | 'fa' | 'de';
 export type ThemeMode = 'light' | 'dark' | 'auto';
 export type TaskbarPosition = 'bottom' | 'top';
 

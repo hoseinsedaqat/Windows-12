@@ -1038,6 +1038,7 @@ export function SettingsApp({ props }: AppWindowProps) {
                 {([
                   { id: 'en', label: 'English', native: 'English' },
                   { id: 'fa', label: 'Persian', native: 'فارسی' },
+                  { id: 'de', label: 'German', native: 'Deutsch' },
                 ] as const).map((language) => (
                   <button key={language.id} type="button" className={`list-row w-full gap-2 ${settings.locale.language === language.id ? 'bg-[var(--accent-soft)]' : ''}`} onClick={() => setLanguage(language.id)}>
                     <span className="min-w-0 flex-1 text-start">
@@ -1067,6 +1068,11 @@ export function SettingsApp({ props }: AppWindowProps) {
                   <Keyboard size={14} className="opacity-60" />
                   <span className="flex-1">Persian (Standard) — فارسی</span>
                   <Badge tone={settings.locale.language === 'fa' ? 'accent' : 'neutral'}>{settings.locale.language === 'fa' ? t('settings.active') : t('settings.available')}</Badge>
+                </div>
+                <div className="flex items-center gap-2 rounded-md border border-[var(--border)] px-2.5 py-1.5">
+                  <Keyboard size={14} className="opacity-60" />
+                  <span className="flex-1">German — QWERTZ</span>
+                  <Badge tone={settings.locale.language === 'de' ? 'accent' : 'neutral'}>{settings.locale.language === 'de' ? t('settings.active') : t('settings.available')}</Badge>
                 </div>
               </div>
               <p className="mt-2 text-[11px] opacity-55">{t('settings.keyboardLayoutHint')}</p>
