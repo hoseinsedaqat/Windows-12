@@ -377,5 +377,53 @@ export function buildSeedNodes(): NodeMap {
     nodes[note.id] = note;
   });
 
+  /* Music: one small generated WAV so Media Player has something to play. */
+  const tone = createNode({
+    id: 'music-concept-tone',
+    name: 'Concept tone.wav',
+    kind: 'audio',
+    parentId: MUSIC_ID,
+    createdAt: DEMO_STAMP,
+    updatedAt: DEMO_STAMP,
+    content: null,
+    metadata: { mime: 'audio/wav', dataUrl: toneWavDataUrl() },
+  });
+  tone.size = 44 + 16000 * 2;
+  nodes[tone.id] = tone;
+
   return nodes;
+}
+
+/** Builds a tiny 1-second sine WAV as a data URL (keeps the seed self-contained). */
+function toneWavDataUrl(): string {
+  const rate = 16000;
+  const seconds = 1;
+  const samples = rate * seconds;
+  const buffer = new ArrayBuffer(44 + samples * 2);
+  const view = new DataView(buffer);
+  const writeString = (offset: number, text: string) => {
+    for (let i = 0; i < text.length; i += 1) view.setUint8(offset + i, text.charCodeAt(i));
+  };
+  writeString(0, 'RIFF');
+  view.setUint32(4, 36 + samples * 2, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, rate, true);
+  view.setUint32(28, rate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeString(36, 'data');
+  view.setUint32(40, samples * 2, true);
+  for (let i = 0; i < samples; i += 1) {
+    const envelope = Math.min(1, i / 800, (samples - i) / 2000);
+    const value = Math.sin((2 * Math.PI * 523.25 * i) / rate) * 0.6 * envelope;
+    view.setInt16(44 + i * 2, Math.round(value * 32767), true);
+  }
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+  return `data:audio/wav;base64,${btoa(binary)}`;
 }

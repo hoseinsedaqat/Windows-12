@@ -66,6 +66,17 @@ export const APPS: AppDefinition[] = [
     handles: ['slides'],
   },
   {
+    id: 'media',
+    name: 'Media Player',
+    keywords: ['media', 'player', 'music', 'video', 'صدا', 'ویدیو', 'پخش'],
+    defaultSize: { width: 860, height: 600 },
+    minSize: { width: 480, height: 380 },
+    listed: true,
+    category: 'media',
+    accent: '#e11d48',
+    handles: ['audio', 'video'],
+  },
+  {
     id: 'notepad',
     name: 'Notepad',
     keywords: ['notepad', 'text', 'txt', 'دفترچه', 'متن'],

@@ -470,6 +470,22 @@ export function Game2048Icon({ size = 48, className, style }: IconProps) {
   );
 }
 
+function MediaIcon({ size }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
+      <rect width="32" height="32" rx="7" fill="#160b14" />
+      <rect x="4" y="6" width="24" height="20" rx="4" fill="url(#mediaGrad)" />
+      <defs>
+        <linearGradient id="mediaGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#f43f5e" />
+          <stop offset="1" stopColor="#a855f7" />
+        </linearGradient>
+      </defs>
+      <path d="M13 11.5v9l8-4.5z" fill="#fff" />
+    </svg>
+  );
+}
+
 const APP_ICONS: Record<string, (props: IconProps) => JSX.Element> = {
   explorer: ExplorerIcon,
   chrome: ChromeIcon,
@@ -477,6 +493,7 @@ const APP_ICONS: Record<string, (props: IconProps) => JSX.Element> = {
   excel: ExcelIcon,
   powerpoint: PowerPointIcon,
   notepad: NotepadIcon,
+  media: MediaIcon,
   notes: NotesIcon,
   accounting: AccountingIcon,
   calculator: CalculatorIcon,
