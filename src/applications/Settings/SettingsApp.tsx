@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Monitor,
   Volume2,
@@ -32,6 +32,8 @@ import {
   Sliders,
   AppWindow,
   ExternalLink,
+  HardDriveDownload,
+  HardDriveUpload,
 } from 'lucide-react';
 import type { AppWindowProps } from '../registry';
 import type { FileKind } from '../../types';
@@ -43,6 +45,8 @@ import { useFileSystemStore } from '../../stores/fileSystemStore';
 import { useWindowStore } from '../../stores/windowStore';
 import { SETTINGS_GROUPS, findSection } from '../../data/settingsNav';
 import { listWallpapers, registerCustomWallpaper } from '../../data/wallpapers';
+import { downloadBackup, decodeBackup, applyBackup } from '../../services/backup';
+import { notify } from '../../stores/notificationStore';
 import { useT } from '../../i18n';
 import { ToggleRow, SliderRow, Segmented, Select, Field, Badge, ProgressBar, EmptyState } from '../../components/ui/Controls';
 import { AppIcon } from '../../components/icons/AppIcons';
@@ -77,6 +81,7 @@ export function SettingsApp({ props }: AppWindowProps) {
   const settings = useSettingsStore((state) => state.settings);
   const setDisplay = useSettingsStore((state) => state.setDisplay);
   const setSound = useSettingsStore((state) => state.setSound);
+  const setIdle = useSettingsStore((state) => state.setIdle);
   const setNetwork = useSettingsStore((state) => state.setNetwork);
   const setPersonalization = useSettingsStore((state) => state.setPersonalization);
   const setLocale = useSettingsStore((state) => state.setLocale);
@@ -105,6 +110,8 @@ export function SettingsApp({ props }: AppWindowProps) {
   const [section, setSection] = useState<string>((props.section as string) ?? 'display');
   const [query, setQuery] = useState('');
   const [deviceName, setDeviceName] = useState('CONCEPT-PC');
+  const [eggClicks, setEggClicks] = useState(0);
+  const [eggOn, setEggOn] = useState(false);
   const [passwordDraft, setPasswordDraft] = useState({ next: '', confirm: '' });
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
 
@@ -187,6 +194,28 @@ export function SettingsApp({ props }: AppWindowProps) {
             </Card>
             <ToggleRow label={t('settings.animations')} description={t('settings.animationsHint')} checked={settings.display.animations} onChange={(value) => setDisplay({ animations: value })} />
             <ToggleRow label={t('settings.reduceMotion')} description={t('settings.reduceMotionHint')} checked={settings.display.reduceMotion} onChange={(value) => setDisplay({ reduceMotion: value })} />
+            <Card title={t('settings.screensaver')}>
+              <ToggleRow label={t('settings.screensaver')} description={t('settings.screensaverHint')} checked={settings.idle.screensaver} onChange={(value) => setIdle({ screensaver: value })} />
+              <div className="mt-2 space-y-2">
+                <div>
+                  <p className="mb-1 text-[11.5px] opacity-70">{t('settings.screensaverAfter')}</p>
+                  <Segmented
+                    value={String(settings.idle.screensaverMinutes)}
+                    onChange={(value) => setIdle({ screensaverMinutes: Number(value) })}
+                    options={['1', '2', '5', '10'].map((minutes) => ({ value: minutes, label: t('settings.minutes', { m: minutes }) }))}
+                  />
+                </div>
+                <div>
+                  <p className="mb-1 text-[11.5px] opacity-70">{t('settings.idleLock')}</p>
+                  <Segmented
+                    value={String(settings.idle.lockMinutes)}
+                    onChange={(value) => setIdle({ lockMinutes: Number(value) })}
+                    options={[{ value: '0', label: t('settings.never') }, ...['3', '5', '10', '15'].map((minutes) => ({ value: minutes, label: t('settings.minutes', { m: minutes }) }))]}
+                  />
+                </div>
+              </div>
+              <p className="mt-2 text-[11px] opacity-55">{t('settings.idleHint')}</p>
+            </Card>
             <Card title={t('settings.resolution')}>
               <p className="text-[12px] opacity-75">
                 {window.screen.width} × {window.screen.height} · {window.devicePixelRatio.toFixed(2)}× DPR · viewport {window.innerWidth}×{window.innerHeight}
@@ -202,6 +231,14 @@ export function SettingsApp({ props }: AppWindowProps) {
             <SliderRow label={t('settings.volume')} value={settings.sound.volume} onChange={(value) => setSound({ volume: value })} icon={<Volume2 size={15} />} />
             <ToggleRow label={t('settings.mute')} description={t('settings.muteHint')} checked={settings.sound.muted} onChange={(value) => setSound({ muted: value })} />
             <ToggleRow label={t('settings.systemSounds')} description={t('settings.systemSoundsHint')} checked={settings.sound.systemSounds} onChange={(value) => setSound({ systemSounds: value })} />
+            <Card title={t('settings.soundTheme')}>
+              <Segmented
+                value={settings.sound.theme}
+                onChange={(value) => setSound({ theme: value as typeof settings.sound.theme })}
+                options={['classic', 'soft', 'retro', 'minimal'].map((theme) => ({ value: theme, label: t(`settings.theme.${theme}`) }))}
+              />
+              <p className="mt-2 text-[11px] opacity-60">{t('settings.soundThemeHint')}</p>
+            </Card>
             <Card title={t('settings.testSound')}>
               <div className="flex flex-wrap gap-2">
                 {(['click', 'open', 'close', 'notify', 'error', 'snap', 'startup'] as const).map((name) => (
@@ -414,6 +451,26 @@ export function SettingsApp({ props }: AppWindowProps) {
                 <Spec label={t('settings.storageUsed')} value={formatBytes(fs.usedBytes)} />
                 <Spec label={t('settings.sessionStarted')} value={formatDate(system.sessionStartedAt, true)} />
                 <Spec label={t('settings.windowsOpen')} value={String(windows.length)} />
+              </dl>
+              <p
+                className="mt-3 cursor-default select-none text-center text-[10px] opacity-30 transition hover:opacity-70"
+                onClick={() => {
+                  const next = eggClicks + 1;
+                  setEggClicks(next);
+                  if (next >= 5 && !eggOn) {
+                    setEggOn(true);
+                    playSound('startup');
+                  }
+                }}
+              >
+                Windows 12 Concept — {t('settings.eggWhisper')}
+              </p>
+              {eggOn ? (
+                <div className="mt-2 rounded-lg border border-fuchsia-400/30 bg-fuchsia-500/10 p-3 text-center text-[12px] leading-relaxed">
+                  🎉 {t('settings.eggFound')} <span className="inline-block animate-bounce">🪟</span>
+                </div>
+              ) : null}
+              <dl className="hidden">
               </dl>
             </Card>
             <Note tone="warning">{t('settings.aboutDisclaimer')}</Note>
@@ -1030,6 +1087,9 @@ export function SettingsApp({ props }: AppWindowProps) {
           </>
         );
 
+      case 'backup':
+        return <BackupPage />;
+
       case 'language':
         return (
           <>
@@ -1038,6 +1098,7 @@ export function SettingsApp({ props }: AppWindowProps) {
                 {([
                   { id: 'en', label: 'English', native: 'English' },
                   { id: 'fa', label: 'Persian', native: 'فارسی' },
+                  { id: 'de', label: 'German', native: 'Deutsch' },
                 ] as const).map((language) => (
                   <button key={language.id} type="button" className={`list-row w-full gap-2 ${settings.locale.language === language.id ? 'bg-[var(--accent-soft)]' : ''}`} onClick={() => setLanguage(language.id)}>
                     <span className="min-w-0 flex-1 text-start">
@@ -1067,6 +1128,11 @@ export function SettingsApp({ props }: AppWindowProps) {
                   <Keyboard size={14} className="opacity-60" />
                   <span className="flex-1">Persian (Standard) — فارسی</span>
                   <Badge tone={settings.locale.language === 'fa' ? 'accent' : 'neutral'}>{settings.locale.language === 'fa' ? t('settings.active') : t('settings.available')}</Badge>
+                </div>
+                <div className="flex items-center gap-2 rounded-md border border-[var(--border)] px-2.5 py-1.5">
+                  <Keyboard size={14} className="opacity-60" />
+                  <span className="flex-1">German — QWERTZ</span>
+                  <Badge tone={settings.locale.language === 'de' ? 'accent' : 'neutral'}>{settings.locale.language === 'de' ? t('settings.active') : t('settings.available')}</Badge>
                 </div>
               </div>
               <p className="mt-2 text-[11px] opacity-55">{t('settings.keyboardLayoutHint')}</p>
@@ -1356,6 +1422,69 @@ function Spec({ label, value }: { label: string; value: string }) {
       <dt className="text-[10.5px] uppercase tracking-wide opacity-50">{label}</dt>
       <dd className="truncate text-[12px]">{value}</dd>
     </div>
+  );
+}
+
+
+function BackupPage() {
+  const { t } = useT();
+  const [status, setStatus] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
+  const doExport = async () => {
+    setBusy(true);
+    try {
+      const filename = await downloadBackup();
+      setStatus(t('settings.backup.exported', { filename }));
+      notify(t('settings.backup.exportedTitle'), filename, 'success', 'settings');
+    } catch (error) {
+      setStatus(String(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const doImport = async (file: File) => {
+    setBusy(true);
+    setStatus(null);
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const payload = decodeBackup(bytes);
+      await applyBackup(payload);
+      setStatus(t('settings.backup.restored'));
+      window.setTimeout(() => window.location.reload(), 1000);
+    } catch {
+      setStatus(t('settings.backup.invalid'));
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card title={t('settings.backup')}>
+      <p className="mb-3 text-[12px] leading-relaxed opacity-70">{t('settings.backupDesc')}</p>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" className="win-button win-button-accent text-[12px]" onClick={() => void doExport()} disabled={busy}>
+          <HardDriveDownload size={14} /> {t('settings.backupExport')}
+        </button>
+        <button type="button" className="win-button text-[12px]" onClick={() => fileRef.current?.click()} disabled={busy}>
+          <HardDriveUpload size={14} /> {t('settings.backupImport')}
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".win12,application/zip"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) void doImport(file);
+            event.target.value = '';
+          }}
+        />
+      </div>
+      {status ? <p className="mt-3 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[12px]">{status}</p> : null}
+      <p className="mt-3 text-[10.5px] leading-relaxed opacity-50">{t('settings.backupNote')}</p>
+    </Card>
   );
 }
 

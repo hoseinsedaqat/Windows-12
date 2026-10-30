@@ -139,6 +139,31 @@ export function useShellShortcuts(enabled: boolean): void {
         return;
       }
 
+      // Virtual desktops: Ctrl+Shift+Left/Right switch, Ctrl+Shift+N new, Ctrl+Shift+F4 close.
+      if (ctrl && shift && (key === 'arrowleft' || key === 'arrowright')) {
+        event.preventDefault();
+        const store = useWindowStore.getState();
+        const index = store.virtualDesktops.findIndex((desktop) => desktop.id === store.activeVirtualDesktop);
+        const target = store.virtualDesktops[index + (key === 'arrowright' ? 1 : -1)];
+        if (target) {
+          store.switchVirtualDesktop(target.id);
+          playSound('click');
+        }
+        return;
+      }
+      if (ctrl && shift && key === 'n') {
+        event.preventDefault();
+        useWindowStore.getState().addVirtualDesktop();
+        playSound('open');
+        return;
+      }
+      if (ctrl && shift && key === 'f4') {
+        event.preventDefault();
+        const store = useWindowStore.getState();
+        store.removeVirtualDesktop(store.activeVirtualDesktop);
+        return;
+      }
+
       // Window snapping: Win+Arrow / Ctrl+Alt+Arrow
       if (combo(['arrowleft', 'arrowright', 'arrowup', 'arrowdown'], true, true)) {
         const id = activeWindowId();

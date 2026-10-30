@@ -34,6 +34,7 @@ import { readFileAsDataUrl, readFileAsText, downloadBlob } from '../services/fil
 /** Files larger than this are stored as metadata only (browser storage is finite). */
 const MAX_INLINE_IMAGE_BYTES = 3.5 * 1024 * 1024;
 const MAX_INLINE_TEXT_BYTES = 1.5 * 1024 * 1024;
+const MAX_INLINE_MEDIA_BYTES = 12 * 1024 * 1024;
 const SEED_FLAG = 'fs.seeded.v1';
 
 export interface FileSystemState {
@@ -334,6 +335,12 @@ export const useFileSystemStore = create<FileSystemState>()((set, get) => ({
             metadata.dataUrl = await readFileAsDataUrl(file);
           } else {
             metadata.dataUrl = undefined;
+            metadata.tooLarge = true;
+          }
+        } else if (kind === 'audio' || kind === 'video') {
+          if (file.size <= MAX_INLINE_MEDIA_BYTES) {
+            metadata.dataUrl = await readFileAsDataUrl(file);
+          } else {
             metadata.tooLarge = true;
           }
         } else if (kind === 'text' || file.type.startsWith('text/') || /\.(json|csv|md|log|xml|html?)$/i.test(file.name)) {

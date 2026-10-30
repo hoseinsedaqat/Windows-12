@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { clsx } from 'clsx';
 
 /** Shared design-system controls used by every application in the OS. */
@@ -311,8 +312,27 @@ export function Modal({
   width?: string;
 }) {
   if (!open) return null;
+  return <ModalInner title={title} onClose={onClose} width={width} footer={footer}>{children}</ModalInner>;
+}
+
+function ModalInner({
+  title,
+  onClose,
+  children,
+  footer,
+  width,
+}: {
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+  footer?: ReactNode;
+  width: string;
+}) {
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, { onEscape: onClose });
   return (
     <div
+      ref={dialogRef}
       className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px]"
       onPointerDown={(event) => {
         if (event.target === event.currentTarget) onClose();

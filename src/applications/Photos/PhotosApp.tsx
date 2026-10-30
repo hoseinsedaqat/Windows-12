@@ -1,11 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut, RotateCcw, Info, Trash2, Download, Image as ImageIcon, Play, Pause, Maximize2, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut, RotateCcw, RotateCw, Info, Trash2, Download, Image as ImageIcon, Play, Pause, Maximize2, Search, FlipHorizontal, FlipVertical, Crop, Save, SlidersHorizontal } from 'lucide-react';
 import { useT } from '../../i18n';
 import { useFileSystemStore } from '../../stores/fileSystemStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useShellStore } from '../../stores/shellStore';
 import { formatBytes, formatDate, formatTime } from '../../services/format';
 import { downloadDataUrl } from '../../services/files';
+import { playSound } from '../../services/sound';
+import {
+  clampCrop,
+  editedFileName,
+  FILTER_CSS,
+  isEdited,
+  nextRotation,
+  NO_EDITS,
+  renderEditedImage,
+  type EditOptions,
+  type ImageFilter,
+} from '../../core/imageOps';
 import { notify } from '../../stores/notificationStore';
 import { registerCustomWallpaper } from '../../data/wallpapers';
 import { EmptyState, Badge } from '../../components/ui/Controls';
@@ -39,6 +51,12 @@ export function PhotosApp() {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [infoOpen, setInfoOpen] = useState(false);
   const [slideshow, setSlideshow] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [edits, setEdits] = useState<EditOptions>(NO_EDITS);
+  const [cropMode, setCropMode] = useState(false);
+  const [cropDisplay, setCropDisplay] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const cropStart = useRef<{ x: number; y: number; rect: DOMRect } | null>(null);
+  const viewerRef = useRef<HTMLImageElement | null>(null);
   const dragging = useRef<{ x: number; y: number } | null>(null);
 
   const photos = useMemo<PhotoItemView[]>(() => {
@@ -75,6 +93,39 @@ export function PhotosApp() {
   }, [album, photos, query]);
 
   const current = index !== null ? filtered[index] : undefined;
+
+  useEffect(() => {
+    setEditing(false);
+    setEdits(NO_EDITS);
+    setCropMode(false);
+    setCropDisplay(null);
+  }, [index]);
+
+  const saveCopy = async () => {
+    if (!current?.node) return;
+    const image = new Image();
+    image.src = current.src;
+    await image.decode();
+    let crop = edits.crop;
+    const rect = viewerRef.current?.getBoundingClientRect();
+    if (cropDisplay && rect && image.naturalWidth > 0) {
+      const scale = image.naturalWidth / rect.width;
+      crop = clampCrop(
+        { x: cropDisplay.x * scale, y: cropDisplay.y * scale, w: cropDisplay.w * scale, h: cropDisplay.h * scale },
+        image.naturalWidth,
+        image.naturalHeight,
+      );
+    }
+    const dataUrl = renderEditedImage(image, { ...edits, crop });
+    const createFile = useFileSystemStore.getState().createFile;
+    createFile('image', current.node.parentId, editedFileName(current.title), dataUrl);
+    playSound('notify');
+    setEditing(false);
+    setEdits(NO_EDITS);
+    setCropMode(false);
+    setCropDisplay(null);
+    notify(t('photos.savedCopy'), editedFileName(current.title), 'success', 'photos');
+  };
 
   const resetView = () => {
     setZoom(1);
@@ -254,6 +305,16 @@ export function PhotosApp() {
             <button type="button" className="icon-button h-8 w-8 text-white" title={t('photos.setWallpaper')} onClick={() => useAsWallpaper(current, false)}>
               <Maximize2 size={15} />
             </button>
+            {current.node ? (
+              <button
+                type="button"
+                className={`icon-button h-8 w-8 ${editing ? 'bg-white/25 text-white' : 'text-white'}`}
+                title={t('photos.edit')}
+                onClick={() => setEditing((value) => !value)}
+              >
+                <SlidersHorizontal size={16} />
+              </button>
+            ) : null}
             <button
               type="button"
               className="icon-button h-8 w-8 text-white"
@@ -269,27 +330,120 @@ export function PhotosApp() {
             ) : null}
           </header>
 
+          {editing ? (
+            <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
+              <button type="button" className="win-button text-[11.5px]" onClick={() => setEdits((value) => ({ ...value, rotation: nextRotation(value.rotation, -1) }))} title={t('photos.rotateLeft')}>
+                <RotateCcw size={14} /> {t('photos.rotateLeft')}
+              </button>
+              <button type="button" className="win-button text-[11.5px]" onClick={() => setEdits((value) => ({ ...value, rotation: nextRotation(value.rotation, 1) }))} title={t('photos.rotateRight')}>
+                <RotateCw size={14} /> {t('photos.rotateRight')}
+              </button>
+              <button type="button" className="win-button text-[11.5px]" onClick={() => setEdits((value) => ({ ...value, flipH: !value.flipH }))}>
+                <FlipHorizontal size={14} />
+              </button>
+              <button type="button" className="win-button text-[11.5px]" onClick={() => setEdits((value) => ({ ...value, flipV: !value.flipV }))}>
+                <FlipVertical size={14} />
+              </button>
+              <button
+                type="button"
+                className={`win-button text-[11.5px] ${cropMode ? 'win-button-accent' : ''}`}
+                onClick={() => setCropMode((value) => !value)}
+                title={t('photos.crop')}
+              >
+                <Crop size={14} /> {t('photos.crop')}
+              </button>
+              <span className="mx-1 h-5 w-px bg-[var(--border)]" />
+              {(Object.keys(FILTER_CSS) as ImageFilter[]).map((filter) => (
+                <button
+                  key={filter}
+                  type="button"
+                  className={`segment-button px-2.5 py-1 text-[11px] ${edits.filter === filter ? 'segment-active' : ''}`}
+                  onClick={() => setEdits((value) => ({ ...value, filter }))}
+                >
+                  {t(`photos.filter.${filter}`)}
+                </button>
+              ))}
+              <span className="flex-1" />
+              <button type="button" className="win-button text-[11.5px]" onClick={() => { setEdits(NO_EDITS); setCropDisplay(null); }}>
+                {t('photos.reset')}
+              </button>
+              <button type="button" className="win-button win-button-accent text-[11.5px]" onClick={() => void saveCopy()} disabled={!isEdited(edits) && !cropDisplay}>
+                <Save size={14} /> {t('photos.saveCopy')}
+              </button>
+            </div>
+          ) : null}
+
           <div
             className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden"
             onPointerDown={(event) => {
+              if (editing && cropMode) {
+                const rect = event.currentTarget.getBoundingClientRect();
+                cropStart.current = { x: event.clientX - rect.left, y: event.clientY - rect.top, rect };
+                setCropDisplay({ x: event.clientX - rect.left, y: event.clientY - rect.top, w: 0, h: 0 });
+                return;
+              }
               if (zoom > 1) dragging.current = { x: event.clientX - offset.x, y: event.clientY - offset.y };
             }}
             onPointerMove={(event) => {
+              if (cropStart.current) {
+                const rect = event.currentTarget.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+                const start = cropStart.current;
+                setCropDisplay({
+                  x: Math.min(start.x, x),
+                  y: Math.min(start.y, y),
+                  w: Math.abs(x - start.x),
+                  h: Math.abs(y - start.y),
+                });
+                return;
+              }
               if (!dragging.current) return;
               setOffset({ x: event.clientX - dragging.current.x, y: event.clientY - dragging.current.y });
             }}
             onPointerUp={() => {
+              if (cropStart.current) {
+                cropStart.current = null;
+                const imgRect = viewerRef.current?.getBoundingClientRect();
+                const container = imgRect;
+                if (container && cropDisplay && cropDisplay.w > 6 && cropDisplay.h > 6) {
+                  setCropDisplay((value) =>
+                    value
+                      ? {
+                          x: value.x - (container.left - (container.left)),
+                          y: value.y,
+                          w: value.w,
+                          h: value.h,
+                        }
+                      : value,
+                  );
+                } else {
+                  setCropDisplay(null);
+                }
+                return;
+              }
               dragging.current = null;
             }}
             onWheel={(event) => setZoom((value) => Math.max(0.25, Math.min(6, value + (event.deltaY < 0 ? 0.15 : -0.15))))}
           >
             <img
+              ref={viewerRef}
               src={current.src}
               alt={current.title}
               className="max-h-full max-w-full select-none object-contain transition-transform duration-150"
               draggable={false}
-              style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`, cursor: zoom > 1 ? 'grab' : 'default' }}
+              style={{
+                transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom}) rotate(${edits.rotation}deg) scaleX(${edits.flipH ? -1 : 1}) scaleY(${edits.flipV ? -1 : 1})`,
+                filter: FILTER_CSS[edits.filter],
+                cursor: editing && cropMode ? 'crosshair' : zoom > 1 ? 'grab' : 'default',
+              }}
             />
+            {editing && cropDisplay && cropDisplay.w > 0 ? (
+              <div
+                className="pointer-events-none absolute rounded-sm border-2 border-dashed border-white bg-white/10"
+                style={{ left: cropDisplay.x, top: cropDisplay.y, width: cropDisplay.w, height: cropDisplay.h }}
+              />
+            ) : null}
             <button type="button" className="icon-button absolute start-3 top-1/2 h-10 w-10 -translate-y-1/2 bg-white/10 text-white hover:bg-white/20" onClick={() => step(-1)} aria-label={t('photos.previous')}>
               <ChevronLeft size={22} />
             </button>

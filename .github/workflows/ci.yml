@@ -37,3 +37,36 @@ jobs:
 
       - name: Build
         run: npx vite build
+
+  e2e-smoke:
+    name: E2E smoke (real browser)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Production build
+        run: npx vite build
+
+      - name: Serve build
+        run: |
+          nohup npm run preview > /tmp/preview.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:4173/ > /dev/null; then echo "preview up"; break; fi
+            sleep 1
+          done
+
+      - name: Run smoke test
+        run: node scripts/smoke.mjs

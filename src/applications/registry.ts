@@ -22,6 +22,8 @@ const COMPONENTS: Record<string, LazyApp> = {
   excel: lazy(() => import('./Excel/ExcelApp')),
   powerpoint: lazy(() => import('./PowerPoint/PowerPointApp')),
   notepad: lazy(() => import('./Notepad/NotepadApp')),
+  media: lazy(() => import('./MediaPlayer/MediaPlayerApp')),
+  mail: lazy(() => import('./Mail/MailApp')),
   notes: lazy(() => import('./Notes/NotesApp')),
   accounting: lazy(() => import('./Accounting/AccountingApp')),
   calculator: lazy(() => import('./Calculator/CalculatorApp')),
@@ -36,6 +38,8 @@ const COMPONENTS: Record<string, LazyApp> = {
   vscode: lazy(() => import('./VSCode/VSCodeApp')),
   minesweeper: lazy(() => import('./Games/MinesweeperApp')),
   snake: lazy(() => import('./Games/SnakeApp')),
+  tetris: lazy(() => import('./Games/TetrisApp')),
+  solitaire: lazy(() => import('./Games/SolitaireApp')),
   game2048: lazy(() => import('./Games/Game2048App')),
 };
 

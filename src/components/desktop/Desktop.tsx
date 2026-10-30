@@ -61,7 +61,13 @@ export function Desktop() {
    *  (no movement in between) open the icon ourselves. */
   const lastClickRef = useRef<{ id: string; at: number } | null>(null);
 
-  const wallpaper = useMemo(() => getWallpaper(personalization.wallpaperId), [personalization.wallpaperId]);
+  const [autoTick, setAutoTick] = useState(0);
+  useEffect(() => {
+    if (personalization.wallpaperId !== 'auto') return undefined;
+    const id = window.setInterval(() => setAutoTick((value) => value + 1), 60_000);
+    return () => window.clearInterval(id);
+  }, [personalization.wallpaperId]);
+  const wallpaper = useMemo(() => getWallpaper(personalization.wallpaperId), [personalization.wallpaperId, autoTick]);
   const metrics = METRICS[personalization.desktopIconSize];
 
   useEffect(() => {
@@ -77,6 +83,8 @@ export function Desktop() {
       window.removeEventListener('win12:resize', custom);
     };
   }, [personalization.taskbarPosition]);
+
+  const [dropHint, setDropHint] = useState(false);
 
   const icons = useMemo(() => {
     const children = getChildren(nodes, DESKTOP_ID);
@@ -417,8 +425,32 @@ export function Desktop() {
       onPointerCancel={onBackgroundPointerUp}
       onContextMenu={backgroundMenu}
       onDoubleClick={() => setSelection([])}
+      onDragOver={(event) => {
+        if (event.dataTransfer.types.includes('Files')) {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'copy';
+          setDropHint(true);
+        }
+      }}
+      onDragLeave={(event) => {
+        if (event.currentTarget.contains(event.relatedTarget as Node)) return;
+        setDropHint(false);
+      }}
+      onDrop={(event) => {
+        if (!event.dataTransfer.files.length) return;
+        event.preventDefault();
+        setDropHint(false);
+        void useFileSystemStore.getState().importFiles(Array.from(event.dataTransfer.files), DESKTOP_ID);
+      }}
       data-testid="desktop-surface"
     >
+      {dropHint ? (
+        <div className="pointer-events-none absolute inset-3 z-30 flex items-center justify-center rounded-2xl border-2 border-dashed border-[var(--accent)] bg-[var(--accent-soft)]/60 backdrop-blur-sm">
+          <p className="rounded-full bg-[var(--surface-solid)] px-4 py-2 text-[13px] font-semibold shadow-lg">
+            {t('desktop.dropHint')}
+          </p>
+        </div>
+      ) : null}
       <img src={wallpaper.url} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover" draggable={false} />
       <div className="pointer-events-none absolute inset-0 bg-black/5" />
 

@@ -148,7 +148,19 @@ const slate = svgUrl(
   shell(`<rect width="1920" height="1080" fill="url(#g8)"/>`, `<linearGradient id="g8" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0f172a"/><stop offset="100%" stop-color="#1e293b"/></linearGradient>`),
 );
 
+/**
+ * Time-of-day wallpaper selection for the "Dynamic" option: morning,
+ * daytime, evening and night each get their own gradient.
+ */
+export function pickAutoWallpaperId(hour: number): string {
+  if (hour >= 5 && hour < 11) return 'sunrise';
+  if (hour >= 11 && hour < 17) return 'flow-light';
+  if (hour >= 17 && hour < 21) return 'forest';
+  return 'midnight-grid';
+}
+
 export const WALLPAPERS: Wallpaper[] = [
+  { id: 'auto', name: 'Dynamic (by time of day)', tone: 'dark', url: '', accent: '#38bdf8', category: 'concept' },
   { id: 'aurora-mesh', name: 'Aurora Mesh', tone: 'dark', url: auroraMesh, accent: '#3b82f6', category: 'concept' },
   { id: 'bloom-dark', name: 'Bloom', tone: 'dark', url: bloomDark, accent: '#6366f1', category: 'abstract' },
   { id: 'concept-hero', name: 'Concept Mark', tone: 'dark', url: conceptHero, accent: '#38bdf8', category: 'concept' },
@@ -179,6 +191,10 @@ export function listWallpapers(): Wallpaper[] {
   return [...WALLPAPERS, ...customWallpapers.values()];
 }
 
-export function getWallpaper(id: string): Wallpaper {
-  return customWallpapers.get(id) ?? WALLPAPERS.find((wallpaper) => wallpaper.id === id) ?? WALLPAPERS[0];
+export function getWallpaper(id: string, now = new Date()): Wallpaper {
+  if (id === 'auto') {
+    const resolved = pickAutoWallpaperId(now.getHours());
+    return WALLPAPERS.find((wallpaper) => wallpaper.id === resolved) ?? WALLPAPERS[1];
+  }
+  return customWallpapers.get(id) ?? WALLPAPERS.find((wallpaper) => wallpaper.id === id) ?? WALLPAPERS[1];
 }

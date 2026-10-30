@@ -232,6 +232,18 @@ export function Taskbar() {
       <div className={`flex min-w-0 items-center ${centered ? 'flex-1' : ''}`}>
         <button
           type="button"
+          onClick={() => {
+            playSound('click');
+            setPanel(panel === 'widgets' ? null : 'widgets');
+          }}
+          className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-[var(--hover)] ${panel === 'widgets' ? 'bg-[var(--active)]' : ''}`}
+          title={t('taskbar.widgets')}
+          aria-label={t('taskbar.widgets')}
+        >
+          <LayoutGrid size={18} />
+        </button>
+        <button
+          type="button"
           onClick={() => setPanel(panel === 'weather' ? null : 'weather')}
           className={`flex h-10 items-center gap-2 rounded-full px-2.5 transition-colors hover:bg-[var(--hover)] ${panel === 'weather' ? 'bg-[var(--active)]' : ''}`}
           title={t('weather.title')}

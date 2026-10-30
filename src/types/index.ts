@@ -101,6 +101,24 @@ export interface WindowInstance {
   openedAt: number;
   /** Set while the open/close animation plays. */
   closing?: boolean;
+  /** Virtual desktop this window lives on (defaults to the first desktop). */
+  virtualDesktop?: string;
+  /** Snap-layout zone + group assigned by the titlebar layout flyout. */
+  snapZone?: SnapZone;
+  snapGroup?: string;
+}
+
+/** Fractional work-area rectangle used by snap layouts. */
+export interface SnapZone {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export interface VirtualDesktop {
+  id: string;
+  name: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -175,7 +193,7 @@ export interface UserAccount {
 /* Settings                                                            */
 /* ------------------------------------------------------------------ */
 
-export type LanguageCode = 'en' | 'fa';
+export type LanguageCode = 'en' | 'fa' | 'de';
 export type ThemeMode = 'light' | 'dark' | 'auto';
 export type TaskbarPosition = 'bottom' | 'top';
 
@@ -188,11 +206,23 @@ export interface DisplaySettings {
   animations: boolean;
 }
 
+export type SoundTheme = 'classic' | 'soft' | 'retro' | 'minimal';
+
 export interface SoundSettings {
   /** Simulated system volume (0-100). It does NOT control the real device volume. */
   volume: number;
   muted: boolean;
   systemSounds: boolean;
+  /** Synthesis character of the simulated system sounds. */
+  theme: SoundTheme;
+}
+
+export interface IdleSettings {
+  /** Show the animated screensaver after `screensaverMinutes` of inactivity. */
+  screensaver: boolean;
+  screensaverMinutes: number;
+  /** Lock the session after `lockMinutes` of inactivity (0 = never). */
+  lockMinutes: number;
 }
 
 export interface NetworkSettings {
@@ -264,6 +294,7 @@ export interface MultitaskingSettings {
 export interface SystemSettings {
   display: DisplaySettings;
   sound: SoundSettings;
+  idle: IdleSettings;
   network: NetworkSettings;
   personalization: PersonalizationSettings;
   locale: LocaleSettings;
@@ -459,6 +490,18 @@ export interface SheetChart {
   labelColumn?: string;
 }
 
+export type ConditionalFormatType = 'dataBar' | 'colorScale' | 'greater' | 'less' | 'duplicates' | 'contains';
+
+export interface ConditionalFormatRule {
+  id: string;
+  type: ConditionalFormatType;
+  /** A1 range, e.g. "B2:B20". */
+  range: string;
+  /** Threshold number or search text, depending on type. */
+  value?: string;
+  color?: string;
+}
+
 export interface SpreadsheetSheet {
   id: string;
   name: string;
@@ -470,6 +513,7 @@ export interface SpreadsheetSheet {
   frozenRows: number;
   frozenCols: number;
   charts?: SheetChart[];
+  conditionalFormats?: ConditionalFormatRule[];
 }
 
 export interface SpreadsheetDocument {

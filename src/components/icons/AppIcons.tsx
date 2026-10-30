@@ -470,6 +470,55 @@ export function Game2048Icon({ size = 48, className, style }: IconProps) {
   );
 }
 
+function MediaIcon({ size }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
+      <rect width="32" height="32" rx="7" fill="#160b14" />
+      <rect x="4" y="6" width="24" height="20" rx="4" fill="url(#mediaGrad)" />
+      <defs>
+        <linearGradient id="mediaGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#f43f5e" />
+          <stop offset="1" stopColor="#a855f7" />
+        </linearGradient>
+      </defs>
+      <path d="M13 11.5v9l8-4.5z" fill="#fff" />
+    </svg>
+  );
+}
+
+function TetrisIcon({ size }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
+      <rect width="32" height="32" rx="7" fill="#0c1a24" />
+      <rect x="6" y="6" width="9" height="9" rx="1.5" fill="#22d3ee" />
+      <rect x="17" y="6" width="9" height="9" rx="1.5" fill="#facc15" />
+      <rect x="6" y="17" width="9" height="9" rx="1.5" fill="#c084fc" />
+      <rect x="17" y="17" width="9" height="9" rx="1.5" fill="#4ade80" />
+    </svg>
+  );
+}
+
+function SolitaireIcon({ size }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
+      <rect width="32" height="32" rx="7" fill="#0b1f14" />
+      <rect x="7" y="5" width="13" height="18" rx="2.5" fill="#1e3a8a" transform="rotate(-12 13 14)" />
+      <rect x="12" y="8" width="13" height="18" rx="2.5" fill="#f8fafc" transform="rotate(8 18 17)" />
+      <text x="18.5" y="20" fontSize="9" fontWeight="bold" fill="#dc2626" textAnchor="middle" transform="rotate(8 18 17)">A♥</text>
+    </svg>
+  );
+}
+
+function MailIcon({ size }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
+      <rect width="32" height="32" rx="7" fill="#0b1a33" />
+      <rect x="4" y="8" width="24" height="16" rx="3" fill="#2563eb" />
+      <path d="M5.5 10 16 17.5 26.5 10" fill="none" stroke="#dbeafe" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 const APP_ICONS: Record<string, (props: IconProps) => JSX.Element> = {
   explorer: ExplorerIcon,
   chrome: ChromeIcon,
@@ -477,6 +526,8 @@ const APP_ICONS: Record<string, (props: IconProps) => JSX.Element> = {
   excel: ExcelIcon,
   powerpoint: PowerPointIcon,
   notepad: NotepadIcon,
+  media: MediaIcon,
+  mail: MailIcon,
   notes: NotesIcon,
   accounting: AccountingIcon,
   calculator: CalculatorIcon,
@@ -493,6 +544,8 @@ const APP_ICONS: Record<string, (props: IconProps) => JSX.Element> = {
   vscode: VSCodeIcon,
   minesweeper: MinesweeperIcon,
   snake: SnakeIcon,
+  tetris: TetrisIcon,
+  solitaire: SolitaireIcon,
   game2048: Game2048Icon,
 };
 
