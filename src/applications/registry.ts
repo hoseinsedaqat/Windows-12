@@ -23,6 +23,7 @@ const COMPONENTS: Record<string, LazyApp> = {
   powerpoint: lazy(() => import('./PowerPoint/PowerPointApp')),
   notepad: lazy(() => import('./Notepad/NotepadApp')),
   media: lazy(() => import('./MediaPlayer/MediaPlayerApp')),
+  mail: lazy(() => import('./Mail/MailApp')),
   notes: lazy(() => import('./Notes/NotesApp')),
   accounting: lazy(() => import('./Accounting/AccountingApp')),
   calculator: lazy(() => import('./Calculator/CalculatorApp')),

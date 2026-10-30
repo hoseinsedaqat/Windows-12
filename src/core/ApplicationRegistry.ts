@@ -66,6 +66,16 @@ export const APPS: AppDefinition[] = [
     handles: ['slides'],
   },
   {
+    id: 'mail',
+    name: 'Mail',
+    keywords: ['mail', 'email', 'inbox', 'نامه', 'ایمیل'],
+    defaultSize: { width: 920, height: 620 },
+    minSize: { width: 640, height: 460 },
+    listed: true,
+    category: 'productivity',
+    accent: '#2563eb',
+  },
+  {
     id: 'media',
     name: 'Media Player',
     keywords: ['media', 'player', 'music', 'video', 'صدا', 'ویدیو', 'پخش'],

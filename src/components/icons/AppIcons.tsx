@@ -509,6 +509,16 @@ function SolitaireIcon({ size }: IconProps) {
   );
 }
 
+function MailIcon({ size }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
+      <rect width="32" height="32" rx="7" fill="#0b1a33" />
+      <rect x="4" y="8" width="24" height="16" rx="3" fill="#2563eb" />
+      <path d="M5.5 10 16 17.5 26.5 10" fill="none" stroke="#dbeafe" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 const APP_ICONS: Record<string, (props: IconProps) => JSX.Element> = {
   explorer: ExplorerIcon,
   chrome: ChromeIcon,
@@ -517,6 +527,7 @@ const APP_ICONS: Record<string, (props: IconProps) => JSX.Element> = {
   powerpoint: PowerPointIcon,
   notepad: NotepadIcon,
   media: MediaIcon,
+  mail: MailIcon,
   notes: NotesIcon,
   accounting: AccountingIcon,
   calculator: CalculatorIcon,
