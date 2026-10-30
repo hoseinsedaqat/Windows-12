@@ -2,6 +2,11 @@ name: Screenshots
 
 on:
   workflow_dispatch:
+    inputs:
+      update_refs:
+        description: 'Accept the current screenshots as the new reference baseline'
+        type: boolean
+        default: false
   push:
     branches: ['arena/**']
     paths:
@@ -42,6 +47,16 @@ jobs:
       - name: Drive the UI and take screenshots
         run: node scripts/screenshot.mjs 2>&1 | tee /tmp/shoot.log
 
+      - name: Visual regression diff vs refs
+        if: github.event.inputs.update_refs != 'true'
+        id: vdiff
+        continue-on-error: true
+        run: node scripts/visual_diff.mjs 2>&1 | tee docs/screenshots/diff-report.txt
+
+      - name: Update reference baseline (requested)
+        if: github.event.inputs.update_refs == 'true'
+        run: node scripts/visual_diff.mjs --update
+
       - name: Commit screenshots (or diagnostics) back to the branch
         if: always()
         run: |
@@ -55,3 +70,9 @@ jobs:
             git commit -m "chore(screenshots): refresh product shots from CI run ${{ github.run_id }}"
             git push origin HEAD:${{ github.ref_name }}
           fi
+
+      - name: Fail the job when screenshots drifted
+        if: steps.vdiff.outcome == 'failure'
+        run: |
+          echo "Visual regression detected. Diff images and the report were committed above (docs/screenshots/diff/)."
+          exit 1
