@@ -34,6 +34,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
       { id: 'power', group: 'system', labelKey: 'settings.power', keywords: ['power', 'boot', 'battery', 'shutdown', 'نیرو', 'باتری'] },
       { id: 'storage', group: 'system', labelKey: 'settings.storage', keywords: ['storage', 'disk', 'space', 'فضا', 'حافظه'] },
       { id: 'multitasking', group: 'system', labelKey: 'settings.multitasking', keywords: ['snap', 'alt tab', 'multitasking', 'پنجره'] },
+      { id: 'backup', group: 'system', labelKey: 'settings.backup', keywords: ['backup', 'restore', 'export', 'import', 'win12', 'پشتیبان', 'بازیابی'] },
       { id: 'about', group: 'system', labelKey: 'settings.about', keywords: ['about', 'version', 'device name', 'درباره', 'نگارش'] },
     ],
   },

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Monitor,
   Volume2,
@@ -32,6 +32,8 @@ import {
   Sliders,
   AppWindow,
   ExternalLink,
+  HardDriveDownload,
+  HardDriveUpload,
 } from 'lucide-react';
 import type { AppWindowProps } from '../registry';
 import type { FileKind } from '../../types';
@@ -43,6 +45,8 @@ import { useFileSystemStore } from '../../stores/fileSystemStore';
 import { useWindowStore } from '../../stores/windowStore';
 import { SETTINGS_GROUPS, findSection } from '../../data/settingsNav';
 import { listWallpapers, registerCustomWallpaper } from '../../data/wallpapers';
+import { downloadBackup, decodeBackup, applyBackup } from '../../services/backup';
+import { notify } from '../../stores/notificationStore';
 import { useT } from '../../i18n';
 import { ToggleRow, SliderRow, Segmented, Select, Field, Badge, ProgressBar, EmptyState } from '../../components/ui/Controls';
 import { AppIcon } from '../../components/icons/AppIcons';
@@ -1030,6 +1034,9 @@ export function SettingsApp({ props }: AppWindowProps) {
           </>
         );
 
+      case 'backup':
+        return <BackupPage />;
+
       case 'language':
         return (
           <>
@@ -1362,6 +1369,69 @@ function Spec({ label, value }: { label: string; value: string }) {
       <dt className="text-[10.5px] uppercase tracking-wide opacity-50">{label}</dt>
       <dd className="truncate text-[12px]">{value}</dd>
     </div>
+  );
+}
+
+
+function BackupPage() {
+  const { t } = useT();
+  const [status, setStatus] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
+  const doExport = async () => {
+    setBusy(true);
+    try {
+      const filename = await downloadBackup();
+      setStatus(t('settings.backup.exported', { filename }));
+      notify(t('settings.backup.exportedTitle'), filename, 'success', 'settings');
+    } catch (error) {
+      setStatus(String(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const doImport = async (file: File) => {
+    setBusy(true);
+    setStatus(null);
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const payload = decodeBackup(bytes);
+      await applyBackup(payload);
+      setStatus(t('settings.backup.restored'));
+      window.setTimeout(() => window.location.reload(), 1000);
+    } catch {
+      setStatus(t('settings.backup.invalid'));
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card title={t('settings.backup')}>
+      <p className="mb-3 text-[12px] leading-relaxed opacity-70">{t('settings.backupDesc')}</p>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" className="win-button win-button-accent text-[12px]" onClick={() => void doExport()} disabled={busy}>
+          <HardDriveDownload size={14} /> {t('settings.backupExport')}
+        </button>
+        <button type="button" className="win-button text-[12px]" onClick={() => fileRef.current?.click()} disabled={busy}>
+          <HardDriveUpload size={14} /> {t('settings.backupImport')}
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".win12,application/zip"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) void doImport(file);
+            event.target.value = '';
+          }}
+        />
+      </div>
+      {status ? <p className="mt-3 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[12px]">{status}</p> : null}
+      <p className="mt-3 text-[10.5px] leading-relaxed opacity-50">{t('settings.backupNote')}</p>
+    </Card>
   );
 }
 
