@@ -486,6 +486,29 @@ function MediaIcon({ size }: IconProps) {
   );
 }
 
+function TetrisIcon({ size }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
+      <rect width="32" height="32" rx="7" fill="#0c1a24" />
+      <rect x="6" y="6" width="9" height="9" rx="1.5" fill="#22d3ee" />
+      <rect x="17" y="6" width="9" height="9" rx="1.5" fill="#facc15" />
+      <rect x="6" y="17" width="9" height="9" rx="1.5" fill="#c084fc" />
+      <rect x="17" y="17" width="9" height="9" rx="1.5" fill="#4ade80" />
+    </svg>
+  );
+}
+
+function SolitaireIcon({ size }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
+      <rect width="32" height="32" rx="7" fill="#0b1f14" />
+      <rect x="7" y="5" width="13" height="18" rx="2.5" fill="#1e3a8a" transform="rotate(-12 13 14)" />
+      <rect x="12" y="8" width="13" height="18" rx="2.5" fill="#f8fafc" transform="rotate(8 18 17)" />
+      <text x="18.5" y="20" fontSize="9" fontWeight="bold" fill="#dc2626" textAnchor="middle" transform="rotate(8 18 17)">A♥</text>
+    </svg>
+  );
+}
+
 const APP_ICONS: Record<string, (props: IconProps) => JSX.Element> = {
   explorer: ExplorerIcon,
   chrome: ChromeIcon,
@@ -510,6 +533,8 @@ const APP_ICONS: Record<string, (props: IconProps) => JSX.Element> = {
   vscode: VSCodeIcon,
   minesweeper: MinesweeperIcon,
   snake: SnakeIcon,
+  tetris: TetrisIcon,
+  solitaire: SolitaireIcon,
   game2048: Game2048Icon,
 };
 

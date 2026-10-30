@@ -37,6 +37,8 @@ const COMPONENTS: Record<string, LazyApp> = {
   vscode: lazy(() => import('./VSCode/VSCodeApp')),
   minesweeper: lazy(() => import('./Games/MinesweeperApp')),
   snake: lazy(() => import('./Games/SnakeApp')),
+  tetris: lazy(() => import('./Games/TetrisApp')),
+  solitaire: lazy(() => import('./Games/SolitaireApp')),
   game2048: lazy(() => import('./Games/Game2048App')),
 };
 
