@@ -1,0 +1,5 @@
+— visual regression report —
+  gallery-games.png: ok 0.00% different (0px)
+  gallery-start.png: ok 0.00% different (0px)
+  hero-desktop.png: ok 0.00% different (0px)
+All screenshots within tolerance.
