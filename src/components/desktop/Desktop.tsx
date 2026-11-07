@@ -5,6 +5,7 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { useShellStore } from '../../stores/shellStore';
 import { DESKTOP_ID, sortNodes, getChildren } from '../../core/FileSystem';
 import { getWallpaper } from '../../data/wallpapers';
+import { layoutDesktopIcons } from '../../core/desktopLayout';
 import { DesktopIcon, type IconMetrics } from './DesktopIcon';
 import { openNode } from '../../services/launcher';
 import { useT } from '../../i18n';
@@ -21,15 +22,7 @@ interface Position {
   y: number;
 }
 
-/** Column-major auto layout, the way the real desktop arranges icons. */
-function autoLayout(count: number, metrics: IconMetrics, areaHeight: number, offset = 12): Position[] {
-  const perColumn = Math.max(1, Math.floor((areaHeight - offset * 2) / metrics.cellH));
-  return Array.from({ length: count }, (_, index) => {
-    const column = Math.floor(index / perColumn);
-    const row = index % perColumn;
-    return { x: offset + column * metrics.cellW, y: offset + row * metrics.cellH };
-  });
-}
+/** Column-major auto layout lives in core/desktopLayout (unit tested). */
 
 export function Desktop() {
   const { t } = useT();
@@ -51,7 +44,12 @@ export function Desktop() {
   const setDialog = useShellStore((state) => state.openDialog);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState({ width: 1280, height: 720 });
+  // Initialise from the real viewport so the very first paint is laid out for
+  // the actual window size (a fixed 1280×720 guess made boot look scrambled).
+  const [size, setSize] = useState(() => ({
+    width: window.innerWidth || 1280,
+    height: Math.max(240, (window.innerHeight || 720) - TASKBAR_HEIGHT),
+  }));
   const [marquee, setMarquee] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [dragOffset, setDragOffset] = useState<Position | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -89,35 +87,25 @@ export function Desktop() {
   const icons = useMemo(() => {
     const children = getChildren(nodes, DESKTOP_ID);
     const sorted = sortNodes(children, { key: 'name', direction: 'asc', foldersFirst: false });
-    const auto = autoLayout(sorted.length, metrics, size.height);
-    const placed: { x: number; y: number }[] = [];
-    const collides = (p: Position) =>
-      placed.some(
-        (q) => Math.abs(p.x - q.x) < metrics.cellW - 6 && Math.abs(p.y - q.y) < metrics.cellH - 6,
-      );
-    return sorted.map((node, index) => {
-      let position: Position;
-      if (personalization.desktopIconLayout === 'free' && typeof node.metadata.iconX === 'number' && typeof node.metadata.iconY === 'number') {
-        position = { x: node.metadata.iconX, y: node.metadata.iconY };
-      } else {
-        position = auto[index];
-      }
-      // Clamp inside the work area and resolve overlaps (e.g. nodes added by
-      // migrations on top of user-placed icons) by falling back to the first
-      // free auto slot.
-      position = {
-        x: Math.max(4, Math.min(position.x, Math.max(4, size.width - metrics.cellW))),
-        y: Math.max(4, Math.min(position.y, Math.max(4, size.height - metrics.cellH))),
-      };
-      if (collides(position)) {
-        const fallback = auto.find((slot) => !collides(slot));
-        position = fallback ?? position;
-      }
-      placed.push(position);
-      return { node, position };
+    const placed = layoutDesktopIcons(
+      sorted.map((node) => ({
+        id: node.id,
+        free:
+          personalization.desktopIconLayout === 'free' &&
+          typeof node.metadata.iconX === 'number' &&
+          typeof node.metadata.iconY === 'number'
+            ? { x: node.metadata.iconX as number, y: node.metadata.iconY as number }
+            : undefined,
+      })),
+      metrics,
+      { width: size.width, height: size.height },
+    );
+    const byId = new Map(placed.map((item) => [item.id, item]));
+    return sorted.map((node) => {
+      const position = byId.get(node.id) ?? { x: 12, y: 12 };
+      return { node, position: { x: position.x, y: position.y } };
     });
   }, [nodes, metrics, size.height, size.width, personalization.desktopIconLayout]);
-
 
   /* ---------------- icon dragging ---------------- */
   const beginIconDrag = useCallback(
@@ -311,8 +299,12 @@ export function Desktop() {
   const arrangeBy = (key: 'name' | 'updatedAt' | 'kind' | 'size') => {
     const children = getChildren(nodes, DESKTOP_ID);
     const sorted = sortNodes(children, { key, direction: 'asc', foldersFirst: true });
-    const auto = autoLayout(sorted.length, metrics, size.height);
-    sorted.forEach((node, index) => setIconPosition(node.id, auto[index].x, auto[index].y));
+    const arranged = layoutDesktopIcons(
+      sorted.map((node) => ({ id: node.id })),
+      metrics,
+      { width: size.width, height: size.height },
+    );
+    sorted.forEach((node, index) => setIconPosition(node.id, arranged[index].x, arranged[index].y));
     useSettingsStore.getState().setPersonalization({ desktopIconLayout: 'free' });
   };
 
