@@ -3,7 +3,7 @@ import { useSystemStore } from '../stores/systemStore';
 import { useFileSystemStore } from '../stores/fileSystemStore';
 import { useSettingsStore, defaultSettings } from '../stores/settingsStore';
 import { useWindowStore } from '../stores/windowStore';
-import { DEFAULT_DEMO_PASSWORD, hashPassword, verifyPassword } from '../services/auth';
+import { CREDENTIAL_PATTERN, DEFAULT_DEMO_PASSWORD, hashPassword, verifyPassword } from '../services/auth';
 import { db } from '../services/db';
 import { DESKTOP_ID, DOCUMENTS_ID } from '../core/FileSystem';
 
@@ -138,6 +138,59 @@ describe('power and session flow', () => {
     system().setPower('lock');
     expect(await system().signIn('my-first-pin')).toBe(true);
     expect(await system().signIn('1234')).toBe(false);
+  });
+
+  it('adopts a Persian-keyboard password that the Latin demo password still unlocks', async () => {
+    // The reported bug: the first password typed becomes the credential, so a
+    // Persian layout typing ۱۲۳۴ used to lock out the documented 1234.
+    expect(await system().signIn('۱۲۳۴')).toBe(true);
+    expect(system().power).toBe('desktop');
+    expect(system().account.passwordHash).toMatch(CREDENTIAL_PATTERN);
+    // The hint now reflects what was adopted instead of advertising the default.
+    expect(system().account.hint).toBe('1\u2022\u2022\u2022');
+
+    const stored = system().account.passwordHash;
+    system().lock();
+    system().setPower('lock');
+    expect(await system().signIn('1234')).toBe(true);
+    expect(system().power).toBe('desktop');
+    // Already canonical: signing in must not churn the stored credential.
+    expect(system().account.passwordHash).toBe(stored);
+  });
+
+  it('self-heals a credential written by an older build', async () => {
+    // 8-hex FNV digest from a plain-HTTP session: previously a permanent lockout.
+    await system().updateAccount({ passwordHash: 'a90a110add07f4d3$3c7849d3' });
+    system().lock();
+    system().setPower('lock');
+    expect(await system().signIn(DEFAULT_DEMO_PASSWORD)).toBe(true);
+    expect(system().power).toBe('desktop');
+    expect(system().account.passwordHash).toMatch(CREDENTIAL_PATTERN);
+    expect(system().account.passwordHash).not.toBe('a90a110add07f4d3$3c7849d3');
+
+    system().lock();
+    system().setPower('lock');
+    expect(await system().signIn(DEFAULT_DEMO_PASSWORD)).toBe(true);
+    expect(await system().signIn('1235')).toBe(false);
+  });
+
+  it('resetDemoAccess unlocks a profile whose password is forgotten', async () => {
+    await system().setPassword('a-passphrase-nobody-remembers');
+    system().lock();
+    system().setPower('lock');
+    expect(await system().signIn(DEFAULT_DEMO_PASSWORD)).toBe(false);
+    expect(system().power).toBe('lock');
+
+    await system().resetDemoAccess();
+    expect(system().account.passwordHash).toBe('');
+    expect(system().account.hint).toBeUndefined();
+    // Still on the lock screen: the hatch forgets the credential, it does not sign in.
+    expect(system().power).toBe('lock');
+    expect(system().signedInAt).toBeNull();
+
+    expect(await system().signIn(DEFAULT_DEMO_PASSWORD)).toBe(true);
+    expect(system().power).toBe('desktop');
+    expect(system().account.passwordHash).toMatch(CREDENTIAL_PATTERN);
   });
 
   it('locks, unlocks and signs out', async () => {

@@ -60,11 +60,26 @@ npm run dev        # → http://localhost:5173
 | `npm run dev` | Vite dev server on `0.0.0.0:5173` |
 | `npm run build` | `tsc -b` strict type-check + production bundle in `dist/` |
 | `npm run typecheck` | Type-check only (strict mode) |
-| `npm test` | 169 unit + integration tests (Vitest, jsdom, fake-indexeddb) |
+| `npm test` | 255 unit + integration tests (Vitest, jsdom, fake-indexeddb) |
 | `npm run preview` | Serve the production bundle on `0.0.0.0:4173` |
 
 First run: logo → loading → welcome → lock screen. Demo password **`1234`**
 (change it in *Settings → Accounts → Sign-in options*, or enable auto sign-in).
+
+Sign-in is simulated, and it is built so it cannot lock you out of the demo:
+
+- **One password, any keyboard.** `۱۲۳۴` (Persian digits), `١٢٣٤` (Arabic digits),
+  `１２３４` (full-width) and `1234` all hash to the same credential; invisible
+  characters (ZWNJ, bidi marks) and stray padding are ignored.
+- **No environment-dependent digests.** SHA-256 is implemented in plain TypeScript,
+  byte-identical to `crypto.subtle`, so a credential written over plain HTTP still
+  verifies over HTTPS (and vice versa). Credentials left behind by older builds —
+  8-hex FNV digests, salt-less legacy hashes, pre-normalisation text — still unlock
+  and are then upgraded to the canonical form in place.
+- **A way back in.** The first password ever typed on a fresh profile *becomes* the
+  demo password (the lock screen then shows that hint instead of advertising `1234`).
+  After three failed attempts the lock screen offers **Forget demo password**, which
+  clears only the stored credential — files, settings and apps are untouched.
 
 ---
 
