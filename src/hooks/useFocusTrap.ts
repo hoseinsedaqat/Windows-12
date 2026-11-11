@@ -1,5 +1,7 @@
-import { useEffect, type RefObject } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 
+const AUTOFOCUS_SELECTOR = '[data-autofocus]';
+const FIELD_SELECTOR = 'input:not([disabled]), select:not([disabled]), textarea:not([disabled])';
 const FOCUSABLE_SELECTOR = [
   'a[href]',
   'button:not([disabled])',
@@ -22,6 +24,14 @@ export function useFocusTrap<T extends HTMLElement>(
 ) {
   const { active = true, onEscape } = options;
 
+  // Callers pass inline callbacks; keeping the latest one in a ref lets the
+  // effect below depend only on `active`. Re-running it on every render used
+  // to yank focus back to the dialog's first button while the user typed.
+  const escapeRef = useRef(onEscape);
+  useEffect(() => {
+    escapeRef.current = onEscape;
+  });
+
   useEffect(() => {
     if (!active) return undefined;
     const node = ref.current;
@@ -30,15 +40,20 @@ export function useFocusTrap<T extends HTMLElement>(
     const previous = document.activeElement as HTMLElement | null;
     const focusables = () => Array.from(node.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
 
-    const initial = focusables()[0];
+    // Prefer an explicit autofocus target, then the first real field, so the
+    // close button never receives the initial focus of a form dialog.
+    const initial =
+      node.querySelector<HTMLElement>(AUTOFOCUS_SELECTOR) ??
+      node.querySelector<HTMLElement>(FIELD_SELECTOR) ??
+      focusables()[0];
     if (initial) initial.focus();
     else node.setAttribute('tabindex', '-1'), node.focus();
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (onEscape) {
+        if (escapeRef.current) {
           event.stopPropagation();
-          onEscape();
+          escapeRef.current();
         }
         return;
       }
@@ -66,5 +81,6 @@ export function useFocusTrap<T extends HTMLElement>(
       document.removeEventListener('keydown', onKeyDown, true);
       if (previous && typeof previous.focus === 'function' && document.contains(previous)) previous.focus();
     };
-  }, [active, ref, onEscape]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, ref]);
 }
