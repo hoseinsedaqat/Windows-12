@@ -11,6 +11,37 @@ function system() {
   return useSystemStore.getState();
 }
 
+/**
+ * A stored credential is `salt$digest` (both hex).
+ *
+ * Do NOT assert "the credential must not *contain* the password": with ~80
+ * random hex characters, any given 4-character sequence shows up in roughly
+ * 1 run in 850, so three such assertions made this suite fail on about 1 CI
+ * run in 284 (that is what turned the "Deploy to GitHub Pages" job red after
+ * the PR #10 merge). The invariants below express the same intent — the plain
+ * password is never stored — but hold for every salt, every time.
+ */
+function expectNoPlaintext(stored: string, password: string) {
+  expect(stored).toBeTruthy();
+  expect(stored).not.toBe(password);
+  // The password is not stored as the credential itself, nor as one of its parts.
+  expect(stored.split('$')).not.toContain(password);
+  const [salt, digestPart] = stored.split('$');
+  expect(salt).toMatch(/^[0-9a-f]+$/);
+  expect(digestPart).toMatch(/^[0-9a-f]+$/);
+  // A digest, never the password echoed back (longest fallback digest is 8 hex).
+  expect(digestPart.length).toBeGreaterThanOrEqual(8);
+  expect(digestPart.length).toBeGreaterThan(password.length);
+}
+
+/** Every string anywhere inside a persisted JSON payload (objects + arrays). */
+function stringValues(node: unknown, out: string[] = []): string[] {
+  if (typeof node === 'string') out.push(node);
+  else if (Array.isArray(node)) for (const item of node) stringValues(item, out);
+  else if (node && typeof node === 'object') for (const value of Object.values(node)) stringValues(value, out);
+  return out;
+}
+
 beforeEach(async () => {
   localStorage.clear();
   await db.files.clear();
@@ -41,7 +72,7 @@ beforeEach(async () => {
 describe('demo credentials', () => {
   it('hashes and verifies passwords without storing them in plain text', async () => {
     const hash = await hashPassword(DEFAULT_DEMO_PASSWORD);
-    expect(hash).not.toContain(DEFAULT_DEMO_PASSWORD);
+    expectNoPlaintext(hash, DEFAULT_DEMO_PASSWORD);
     expect(hash.length).toBeGreaterThan(16);
     expect(await verifyPassword(DEFAULT_DEMO_PASSWORD, hash)).toBe(true);
     expect(await verifyPassword('wrong', hash)).toBe(false);
@@ -49,6 +80,20 @@ describe('demo credentials', () => {
     // Salting means the same password hashes differently every time.
     expect(await hashPassword(DEFAULT_DEMO_PASSWORD)).not.toBe(hash);
     expect(DEFAULT_DEMO_PASSWORD).toBe('1234');
+  });
+
+  it('keeps every credential invariant true across many random salts', async () => {
+    // Guards against a probabilistic assertion creeping back in: if any
+    // invariant depended on the *contents* of a random salt, 256 draws would
+    // expose it instead of 1 CI run in 284.
+    const salts = new Set<string>();
+    for (let i = 0; i < 256; i += 1) {
+      const hash = await hashPassword(DEFAULT_DEMO_PASSWORD);
+      expectNoPlaintext(hash, DEFAULT_DEMO_PASSWORD);
+      salts.add(hash.split('$')[0]);
+      if (i % 32 === 0) expect(await verifyPassword(DEFAULT_DEMO_PASSWORD, hash)).toBe(true);
+    }
+    expect(salts.size).toBe(256);
   });
 });
 
@@ -80,7 +125,7 @@ describe('power and session flow', () => {
     expect(system().signedInAs).toBe('user-1');
     // The stored credential is a salted digest, never the plain password.
     expect(system().account.passwordHash).toContain('$');
-    expect(system().account.passwordHash).not.toContain(DEFAULT_DEMO_PASSWORD);
+    expectNoPlaintext(system().account.passwordHash, DEFAULT_DEMO_PASSWORD);
   });
 
   it('adopts the first password typed on a brand new profile', async () => {
@@ -177,8 +222,13 @@ describe('power and session flow', () => {
 
     const raw = localStorage.getItem('win12-concept.system');
     expect(raw).toContain('Hosein');
-    expect(raw).not.toContain('2468');
     const storedPasswordHash = system().account.passwordHash;
+    // No plaintext password anywhere in the payload: check every stored string
+    // by equality, not by substring (a random digest may contain "2468").
+    expect(stringValues(JSON.parse(raw!))).not.toContain('2468');
+    expectNoPlaintext(storedPasswordHash, '2468');
+    // The hint keeps only the first character, never the whole secret.
+    expect(system().account.hint).toBe('2\u2022\u2022\u2022');
 
     // Simulate a reload: reset memory, put the saved payload back, rehydrate.
     useSystemStore.setState({
