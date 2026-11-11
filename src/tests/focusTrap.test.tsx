@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useRef } from 'react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import { Modal } from '../components/ui/Controls';
 
 // @ts-expect-error test env flag
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -104,6 +105,53 @@ describe('useFocusTrap', () => {
     value = 'st';
     await render();
     expect(document.activeElement?.id).toBe('name');
+    await act(async () => root.unmount());
+  });
+
+  it('shared Modal (behind every app dialog): fields keep focus while typing, Escape uses the latest callback', async () => {
+    let value = '';
+    let escapes = 0;
+    const root = createRoot(container);
+    const render = async (current: string) => {
+      await act(async () => {
+        root.render(
+          <Modal
+            open
+            title="New contact"
+            onClose={() => {
+              escapes += 1;
+            }}
+          >
+            <input id="field" value={current} onChange={(event) => void render(event.target.value)} />
+            <textarea id="notes" defaultValue="" />
+          </Modal>,
+        );
+      });
+      value = current;
+    };
+    await render('');
+    // opens with the caret in the first field, never on the close button
+    expect(document.activeElement?.id).toBe('field');
+
+    // every keystroke re-renders with a brand-new inline onClose (all 14 app
+    // modals + Accounting dialogs pass inline callbacks)
+    await render('s');
+    await render('sa');
+    await render('sam');
+    expect(document.activeElement?.id).toBe('field');
+
+    // Tab still wraps inside the dialog
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+    });
+    expect(container.contains(document.activeElement)).toBe(true);
+
+    // Escape reaches the *latest* inline callback exactly once
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    expect(escapes).toBe(1);
+    expect(value).toBe('sam');
     await act(async () => root.unmount());
   });
 
