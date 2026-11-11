@@ -19,6 +19,22 @@ function TrapDemo({ onEscape }: { onEscape: () => void }) {
   );
 }
 
+/** Mirrors the Accounting "New contact" dialog: close button first in DOM,
+ *  then form fields; typing re-renders the dialog with a fresh inline
+ *  onEscape callback every time. */
+function FormDialog({ value, onChange, onClose }: { value: string; onChange: (next: string) => void; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(ref, { onEscape: onClose });
+  return (
+    <div ref={ref} role="dialog" aria-modal="true">
+      <button id="close" type="button" onClick={onClose} aria-label="Close">
+        x
+      </button>
+      <input id="name" value={value} onChange={(event) => onChange(event.target.value)} />
+    </div>
+  );
+}
+
 describe('useFocusTrap', () => {
   let container: HTMLDivElement;
   beforeEach(() => {
@@ -52,6 +68,42 @@ describe('useFocusTrap', () => {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     });
     expect(escaped).toBe(1);
+    await act(async () => root.unmount());
+  });
+
+  it('keeps focus in the field while typing re-renders the dialog (accounting regression)', async () => {
+    let value = '';
+    const root = createRoot(container);
+    const render = async () => {
+      await act(async () => {
+        root.render(
+          <FormDialog
+            value={value}
+            onChange={(next) => {
+              value = next;
+              void render();
+            }}
+            onClose={() => undefined}
+          />,
+        );
+      });
+    };
+    await render();
+    // initial focus goes to the first field, not the close button
+    expect(document.activeElement?.id).toBe('name');
+
+    const input = document.getElementById('name') as HTMLInputElement;
+    await act(async () => {
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    // simulate the user typing a character (state update -> re-render with a
+    // brand-new inline onEscape, exactly like the Accounting modal)
+    value = 's';
+    await render();
+    expect(document.activeElement?.id).toBe('name');
+    value = 'st';
+    await render();
+    expect(document.activeElement?.id).toBe('name');
     await act(async () => root.unmount());
   });
 
