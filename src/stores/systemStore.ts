@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { BootStage, PowerState, UserAccount } from '../types';
-import { DEFAULT_DEMO_PASSWORD, hashPassword, verifyPassword } from '../services/auth';
+import { checkCredential, DEFAULT_DEMO_PASSWORD, demoHint, hashPassword, normalizePassword } from '../services/auth';
 import { setKV, getKV } from '../services/db';
 
 export interface ActivityEntry {
@@ -47,6 +47,12 @@ export interface SystemState {
   restart: () => void;
   updateAccount: (patch: Partial<UserAccount>) => Promise<void>;
   setPassword: (next: string) => Promise<void>;
+  /**
+   * Recovery hatch for the simulated gate: forgets the stored credential so the
+   * next password typed becomes the demo password again. Nobody can be locked
+   * out of a concept demo by a password they no longer remember.
+   */
+  resetDemoAccess: () => Promise<void>;
   setAccessibility: (patch: Partial<AccessibilityState>) => void;
   logActivity: (entry: Omit<ActivityEntry, 'id' | 'at'>) => void;
   clearActivity: () => void;
@@ -124,12 +130,20 @@ export const useSystemStore = create<SystemState>()(
         const { account } = get();
         if (!account.passwordHash) {
           // First run: whatever the user types becomes the demo password.
-          const hash = await hashPassword(password || DEFAULT_DEMO_PASSWORD);
-          set({ account: { ...account, passwordHash: hash }, signedInAt: Date.now(), power: 'desktop', signedInAs: account.id });
+          // Normalised, so a Persian keyboard typing ۱۲۳۴ and a Latin keyboard
+          // typing 1234 adopt the *same* credential — and the hint reflects what
+          // was actually adopted instead of still advertising the default.
+          const adopted = normalizePassword(password) || DEFAULT_DEMO_PASSWORD;
+          const passwordHash = await hashPassword(adopted);
+          await get().updateAccount({ passwordHash, hint: demoHint(adopted) });
+          set({ signedInAt: Date.now(), power: 'desktop', signedInAs: account.id });
           return true;
         }
-        const ok = await verifyPassword(password, account.passwordHash);
+        const { ok, upgradeTo } = await checkCredential(password, account.passwordHash);
         if (ok) {
+          // Self-heal credentials written by older builds (raw text, 8-hex FNV
+          // digest from an insecure context, or a salt-less legacy hash).
+          if (upgradeTo) await get().updateAccount({ passwordHash: upgradeTo, hint: demoHint(password) });
           set({ signedInAt: Date.now(), power: 'desktop', signedInAs: account.id });
         }
         return ok;
@@ -147,7 +161,12 @@ export const useSystemStore = create<SystemState>()(
 
       setPassword: async (next: string) => {
         const passwordHash = await hashPassword(next);
-        await get().updateAccount({ passwordHash, hint: next ? `${next.slice(0, 1)}${'•'.repeat(Math.max(0, next.length - 1))}` : undefined });
+        await get().updateAccount({ passwordHash, hint: normalizePassword(next) ? demoHint(next) : undefined });
+      },
+
+      resetDemoAccess: async () => {
+        await get().updateAccount({ passwordHash: '', hint: undefined });
+        set({ signedInAt: null, signedInAs: null });
       },
 
       setAccessibility: (patch) => set((s) => ({ accessibility: { ...s.accessibility, ...patch } })),

@@ -79,6 +79,11 @@ export const en = {
   'lock.network': 'Network',
   'lock.showPassword': 'Show password',
   'lock.hidePassword': 'Hide password',
+  'lock.adoptedNotice': 'This profile kept the first password ever typed on it. Sign in with that one, or reset it below.',
+  'lock.digitNotice': 'Persian and Latin digits are the same password here: ۱۲۳۴ = 1234.',
+  'lock.recoveryNotice': 'Three misses. This sign-in is simulated, so you can forget the stored demo password and set a new one — nothing else in the demo is touched.',
+  'lock.recoveryReset': 'Forget demo password',
+  'lock.recoveryDone': 'Demo password forgotten — type a new one to enter.',
 
   'mail.inbox': 'Inbox',
   'mail.sent': 'Sent',

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Accessibility, ChevronUp, Eye, EyeOff, Power, RotateCcw, ShieldCheck, Wifi, WifiOff, LogOut } from 'lucide-react';
+import { Accessibility, ChevronUp, Eye, EyeOff, KeyRound, Power, RotateCcw, ShieldCheck, Wifi, WifiOff, LogOut } from 'lucide-react';
 import { useSystemStore } from '../../stores/systemStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { getWallpaper } from '../../data/wallpapers';
@@ -23,6 +23,7 @@ export function LockScreen() {
   const restart = useSystemStore((state) => state.restart);
   const signOut = useSystemStore((state) => state.signOut);
   const setAccessibility = useSystemStore((state) => state.setAccessibility);
+  const resetDemoAccess = useSystemStore((state) => state.resetDemoAccess);
   const accessibility = useSystemStore((state) => state.accessibility);
   const openDialog = useShellStore((state) => state.openDialog);
 
@@ -32,6 +33,8 @@ export function LockScreen() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [powerMenu, setPowerMenu] = useState(false);
+  const [attempts, setAttempts] = useState(0);
+  const [recovered, setRecovered] = useState(false);
   const [a11yMenu, setA11yMenu] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const now = useClock(1000);
@@ -70,14 +73,29 @@ export function LockScreen() {
     if (ok) {
       setPhase('entering');
       playSound('open');
+      setAttempts(0);
+      setRecovered(false);
       window.setTimeout(() => setPassword(''), 400);
     } else {
       setError(t('lock.wrongPassword'));
+      setAttempts((count) => count + 1);
       playSound('error');
       setPassword('');
       inputRef.current?.focus();
     }
     setBusy(false);
+  };
+
+  /** Last resort for a simulated gate: forget the credential, stay on the lock screen. */
+  const recover = async () => {
+    setBusy(true);
+    await resetDemoAccess();
+    setError(null);
+    setPassword('');
+    setAttempts(0);
+    setRecovered(true);
+    setBusy(false);
+    inputRef.current?.focus();
   };
 
   const avatarColor = account.avatarColor || AVATARS[0].color;
@@ -166,11 +184,35 @@ export function LockScreen() {
                   </p>
                 ) : null}
 
+                {recovered ? (
+                  <p className="flex items-center gap-2 rounded-md bg-emerald-500/20 px-3 py-1.5 text-xs text-emerald-50" role="status">
+                    <KeyRound size={14} /> {t('lock.recoveryDone')}
+                  </p>
+                ) : null}
+
+                {/* Nobody gets locked out of a demo: after three misses, offer the hatch. */}
+                {attempts >= 3 ? (
+                  <div className="flex max-w-sm flex-col items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-center backdrop-blur-md" data-testid="lock-recovery">
+                    <p className="text-[11px] leading-relaxed text-white/75">{t('lock.recoveryNotice')}</p>
+                    <button
+                      type="button"
+                      onClick={recover}
+                      disabled={busy}
+                      className="flex items-center gap-1.5 rounded-md bg-white/85 px-3 py-1.5 text-[11px] font-semibold text-slate-900 transition hover:bg-white disabled:opacity-50"
+                    >
+                      <KeyRound size={13} /> {t('lock.recoveryReset')}
+                    </button>
+                  </div>
+                ) : null}
+
                 <p className="max-w-sm text-center text-[11px] leading-relaxed text-white/55">
                   {account.hint
                     ? `${t('lock.hint')}: ${account.hint}`
-                    : t('lock.demoNotice', { password: DEFAULT_DEMO_PASSWORD })}
+                    : account.passwordHash
+                      ? t('lock.adoptedNotice')
+                      : t('lock.demoNotice', { password: DEFAULT_DEMO_PASSWORD })}
                 </p>
+                <p className="max-w-sm text-center text-[11px] leading-relaxed text-white/40">{t('lock.digitNotice')}</p>
               </form>
             )}
           </div>
